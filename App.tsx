@@ -80,7 +80,7 @@ function App() {
 
           <footer className="bg-white border-t border-slate-200 py-12 mt-auto">
             <div className="max-w-7xl mx-auto px-4 text-center text-slate-400 text-sm">
-              <p>&copy; {new Date().getFullYear()} Lexicon Practice. Powered by Gemini AI.</p>
+              <p>&copy; {new Date().getFullYear()} Novellis. Powered by Gemini AI.</p>
             </div>
           </footer>
         </>
