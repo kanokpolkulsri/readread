@@ -31,7 +31,13 @@ export interface ReadingSession {
   questions: Question[];
 }
 
+export interface User {
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
 export interface UserState {
   isLoggedIn: boolean;
-  username?: string;
+  user?: User;
 }

@@ -46,7 +46,7 @@ const BOOKSHELF = [
     subtitle: 'Technology & AI',
     desc: 'AI, cybernetics, coding, and digital culture. Wired Magazine style.', 
     accent: 'bg-cyan-50 text-cyan-600',
-    icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
+    icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
   },
   { 
     type: TestType.HORROR, 
@@ -78,7 +78,7 @@ const TestSelector: React.FC<TestSelectorProps> = ({ onSelect, selectedLevel, on
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="text-center mb-10">
-        <h1 className="text-4xl font-serif font-bold text-slate-900 mb-4">Browse the Bookstore</h1>
+        <h1 className="text-4xl font-serif font-bold text-slate-900 mb-4">Browse readerline</h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-8">
           Walk through our aisles and pick a genre. We'll generate a unique reading experience for you.
         </p>
@@ -130,7 +130,7 @@ const TestSelector: React.FC<TestSelectorProps> = ({ onSelect, selectedLevel, on
             </p>
             
             <div className="mt-6 flex items-center text-indigo-600 font-medium text-sm">
-              Open Book
+              Read now
               <svg className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>

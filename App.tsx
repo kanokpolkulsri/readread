@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import Header from './components/Header';
 import TestSelector from './components/TestSelector';
 import ReadingView from './components/ReadingView';
+import LoginModal from './components/LoginModal';
 import { generateReadingSession } from './services/geminiService';
-import { ReadingSession, TestType, DifficultyLevel } from './types';
+import { ReadingSession, TestType, DifficultyLevel, User } from './types';
 
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'reading'>('home');
@@ -11,12 +12,15 @@ function App() {
   const [session, setSession] = useState<ReadingSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [difficultyLevel, setDifficultyLevel] = useState<DifficultyLevel>(DifficultyLevel.INTERMEDIATE);
+  
+  // Login State
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   const handleTestSelect = async (testType: TestType) => {
     setLoading(true);
     setError(null);
     try {
-      // Pass the selected difficulty level to the generator
       const data = await generateReadingSession(testType, difficultyLevel);
       setSession(data);
       setCurrentView('reading');
@@ -38,7 +42,6 @@ function App() {
     setSession(null);
   };
 
-  // Helper for "a" vs "an"
   const getIndefiniteArticle = (word: string) => {
     const vowels = ['a', 'e', 'i', 'o', 'u'];
     return vowels.includes(word[0].toLowerCase()) ? 'an' : 'a';
@@ -46,9 +49,20 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={(userData) => setUser(userData)}
+      />
+
       {currentView === 'home' && (
         <>
-          <Header onHomeClick={() => setCurrentView('home')} />
+          <Header 
+            onHomeClick={() => setCurrentView('home')} 
+            user={user}
+            onLoginClick={() => setIsLoginModalOpen(true)}
+            onLogoutClick={() => setUser(null)}
+          />
           
           <main className="pb-20">
             {loading ? (
@@ -80,7 +94,7 @@ function App() {
 
           <footer className="bg-white border-t border-slate-200 py-12 mt-auto">
             <div className="max-w-7xl mx-auto px-4 text-center text-slate-400 text-sm">
-              <p>&copy; {new Date().getFullYear()} Novellis. Powered by Gemini AI.</p>
+              <p>&copy; {new Date().getFullYear()} readerline. Powered by Gemini AI.</p>
             </div>
           </footer>
         </>
