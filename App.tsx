@@ -38,6 +38,12 @@ function App() {
     setSession(null);
   };
 
+  // Helper for "a" vs "an"
+  const getIndefiniteArticle = (word: string) => {
+    const vowels = ['a', 'e', 'i', 'o', 'u'];
+    return vowels.includes(word[0].toLowerCase()) ? 'an' : 'a';
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       {currentView === 'home' && (
@@ -49,7 +55,9 @@ function App() {
                <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
                  <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
                  <h2 className="text-xl font-serif font-bold text-slate-800">Constructing Passage...</h2>
-                 <p className="text-slate-500 mt-2">Drafting a {difficultyLevel.toLowerCase()} level session...</p>
+                 <p className="text-slate-500 mt-2">
+                   Drafting {getIndefiniteArticle(difficultyLevel)} {difficultyLevel.toLowerCase()} level session...
+                 </p>
                </div>
             ) : (
               <TestSelector 

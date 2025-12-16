@@ -79,10 +79,7 @@ export const generateReadingSession = async (testType: TestType, level: Difficul
       levelInstruction = "Proficiency: INTERMEDIATE. Use standard vocabulary (CEFR B2). Moderate sentence length. Some compound sentences.";
       break;
     case DifficultyLevel.ADVANCED:
-      levelInstruction = "Proficiency: ADVANCED. Use sophisticated vocabulary (CEFR C1). Complex sentence structures. Nuanced expressions.";
-      break;
-    case DifficultyLevel.EXPERT:
-      levelInstruction = "Proficiency: EXPERT/NATIVE. Use highly advanced vocabulary (CEFR C2). Dense, academic, or stylized prose. Nuanced and abstract.";
+      levelInstruction = "Proficiency: ADVANCED. Use sophisticated vocabulary (CEFR C1/C2). Complex sentence structures. Nuanced expressions.";
       break;
   }
 

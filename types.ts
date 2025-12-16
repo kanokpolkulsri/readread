@@ -12,8 +12,7 @@ export enum TestType {
 export enum DifficultyLevel {
   BEGINNER = 'Beginner',
   INTERMEDIATE = 'Intermediate',
-  ADVANCED = 'Advanced',
-  EXPERT = 'Expert'
+  ADVANCED = 'Advanced'
 }
 
 export interface Question {
