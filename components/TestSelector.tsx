@@ -43,40 +43,40 @@ const BOOKSHELF = [
 
 const TestSelector: React.FC<TestSelectorProps> = ({ onSelect }) => {
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 md:py-12">
-      <div className="text-center mb-8 md:mb-16">
-        <h1 className="text-2xl md:text-4xl font-serif font-bold text-slate-900 mb-3 md:mb-6">Choose Your Reading</h1>
-        <p className="text-slate-500 max-w-lg mx-auto text-xs md:text-base">Select a topic to generate a unique reading session powered by AI.</p>
+    <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
+      <div className="text-center mb-10 md:mb-16">
+        <h1 className="text-3xl md:text-5xl font-serif font-bold text-slate-900 mb-4 md:mb-6">Choose Your Reading</h1>
+        <p className="text-slate-500 max-w-xl mx-auto text-sm md:text-lg leading-relaxed">Select a topic to generate a unique reading session powered by AI.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
         {BOOKSHELF.map((book) => (
           <button
             key={book.type}
             onClick={() => onSelect(book.type)}
-            className="group relative p-4 md:p-8 rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-left flex flex-col h-full overflow-hidden"
+            className="group relative p-5 md:p-8 rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-left flex flex-col h-full overflow-hidden"
           >
-            <div className="flex items-start justify-between mb-3 md:mb-6">
-              <div className="w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div className="flex items-start justify-between mb-4 md:mb-6">
+              <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                 {book.icon}
               </div>
             </div>
             
             <div className="flex-grow">
-              <h3 className="text-base md:text-xl font-bold mb-0.5 md:mb-1 text-slate-900">
+              <h3 className="text-lg md:text-xl font-bold mb-1 text-slate-900">
                 {book.title}
               </h3>
-              <div className="text-[10px] md:text-xs font-bold text-indigo-600 uppercase tracking-widest mb-1.5 md:mb-3">
+              <div className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-2 md:mb-3">
                 {book.subtitle}
               </div>
-              <p className="text-xs md:text-sm text-slate-500 leading-relaxed">
+              <p className="text-sm md:text-base text-slate-500 leading-relaxed">
                 {book.description}
               </p>
             </div>
             
-            <div className="mt-3 md:mt-8 pt-3 md:pt-6 border-t border-slate-100 flex items-center text-indigo-600 font-medium text-xs md:text-sm group-hover:text-indigo-700">
+            <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 flex items-center text-indigo-600 font-medium text-sm md:text-base group-hover:text-indigo-700">
               <span>Start Reading</span>
-              <svg className="w-3 h-3 md:w-4 md:h-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </div>
