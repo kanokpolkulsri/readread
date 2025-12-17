@@ -1,69 +1,84 @@
+import { createClient } from "@supabase/supabase-js";
 import { ReadingSession, SavedSession, TestType, DifficultyLevel } from "../types";
 
-// Using a local storage mock implementation to ensure functionality.
-const STORAGE_KEY = 'readerline_sessions_local';
+// Supabase Configuration
+const supabaseUrl = 'https://yachmbljmjwwtuqzldul.supabase.co';
+const supabaseKey = 'sb_publishable_ycqNi2d-OAoVCuxd-WRySQ_P-_-GXQb';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Legacy/Mock export to prevent breaking unused LoginModal if it exists
 export const mockLogin = async (email: string) => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  // Mock logic
-  if (email.includes('error')) {
-    throw new Error("Invalid credentials");
-  }
-  
-  if (email === 'exists@test.com') {
-     throw new Error("User already exists. Sign in?");
-  }
-
-  return {
-    user: {
-      email: email,
-      uid: 'mock-uid-' + Date.now(),
-    }
-  };
+  return { user: { email, uid: 'mock' } };
 };
 
 export const databaseService = {
-  // Save a new session to LocalStorage
+  // Save a new session to Supabase 'books' table
   saveSession: async (session: ReadingSession, testType: TestType, level: DifficultyLevel): Promise<SavedSession> => {
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 400));
-      
-      const timestamp = Date.now();
-      
-      const docData: SavedSession = {
-        ...session,
-        id: 'sess-' + timestamp,
-        timestamp,
-        testType,
-        level,
+      const dbPayload = {
+        title: session.title,
+        passage: session.passage,
+        difficulty: session.difficulty,
+        avg_time: session.avgTime,
+        questions: session.questions,
+        question_count: session.questions.length, // Explicitly storing count
+        topic: testType,
+        level: level,
       };
 
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const sessions: SavedSession[] = stored ? JSON.parse(stored) : [];
-      sessions.unshift(docData);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-      
-      console.log("Session saved locally (mock DB)");
-      return docData;
+      const { data, error } = await supabase
+        .from('books')
+        .insert([dbPayload])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Supabase Insert Error:", error);
+        // Fallback to local structure if DB fails, but throw to alert app
+        throw error;
+      }
+
+      console.log("Session saved to Supabase with ID:", data.id);
+
+      return {
+        ...session,
+        id: data.id,
+        timestamp: new Date(data.created_at).getTime(),
+        testType: testType,
+        level: level
+      };
     } catch (error) {
-      console.error("Error saving to local storage: ", error);
+      console.error("Error saving to database: ", error);
       throw error;
     }
   },
 
-  // Retrieve all sessions
+  // Retrieve all sessions from Supabase
   getAllSessions: async (): Promise<SavedSession[]> => {
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 400));
-      
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
+      const { data, error } = await supabase
+        .from('books')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Supabase Select Error:", error);
+        return [];
+      }
+
+      return data.map((item: any) => ({
+        title: item.title,
+        passage: item.passage,
+        difficulty: item.difficulty,
+        avgTime: item.avg_time,
+        questions: item.questions,
+        id: item.id,
+        timestamp: new Date(item.created_at).getTime(),
+        testType: item.topic as TestType,
+        level: item.level as DifficultyLevel
+      }));
     } catch (error) {
-      console.error("Error getting from local storage: ", error);
+      console.error("Error getting documents: ", error);
       return [];
     }
   }
