@@ -1,8 +1,10 @@
 import React from 'react';
-import { TestType } from '../types';
+import { TestType, Difficulty } from '../types';
 
 interface TestSelectorProps {
   onSelect: (type: TestType) => void;
+  difficulty: Difficulty;
+  onDifficultyChange: (difficulty: Difficulty) => void;
 }
 
 const BOOKSHELF = [
@@ -41,12 +43,36 @@ const BOOKSHELF = [
   },
 ];
 
-const TestSelector: React.FC<TestSelectorProps> = ({ onSelect }) => {
+const TestSelector: React.FC<TestSelectorProps> = ({ onSelect, difficulty, onDifficultyChange }) => {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
-      <div className="text-center mb-10 md:mb-16">
+      <div className="text-center mb-8 md:mb-12">
         <h1 className="text-3xl md:text-5xl font-serif font-bold text-slate-900 mb-4 md:mb-6">Choose Your Reading</h1>
-        <p className="text-slate-500 max-w-xl mx-auto text-sm md:text-lg leading-relaxed">Select a topic to generate a unique reading session powered by AI.</p>
+        <p className="text-slate-500 max-w-xl mx-auto text-sm md:text-lg leading-relaxed mb-8">Select a topic to generate a unique reading session powered by AI.</p>
+        
+        {/* Difficulty Toggle */}
+        <div className="inline-flex bg-slate-100 p-1.5 rounded-xl shadow-inner">
+          <button
+            onClick={() => onDifficultyChange(Difficulty.STANDARD)}
+            className={`px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-all duration-200 ${
+              difficulty === Difficulty.STANDARD
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Standard <span className="text-xs opacity-75 hidden sm:inline">(IELTS 9.0)</span>
+          </button>
+          <button
+            onClick={() => onDifficultyChange(Difficulty.CHALLENGE)}
+            className={`px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-all duration-200 ${
+              difficulty === Difficulty.CHALLENGE
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Challenge <span className="text-xs opacity-75 hidden sm:inline">(GRE / NYT)</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">

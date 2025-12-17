@@ -3,7 +3,7 @@ import Header from './components/Header';
 import TestSelector from './components/TestSelector';
 import ReadingView from './components/ReadingView';
 import { generateReadingSession } from './services/geminiService';
-import { ReadingSession, TestType } from './types';
+import { ReadingSession, TestType, Difficulty } from './types';
 
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'reading'>('home');
@@ -11,6 +11,7 @@ function App() {
   const [session, setSession] = useState<ReadingSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTestType, setActiveTestType] = useState<TestType | null>(null);
+  const [difficulty, setDifficulty] = useState<Difficulty>(Difficulty.STANDARD);
   
   // Global Font Size State
   // Mobile (<768px) defaults to 14px, Desktop/Tablet defaults to 12px
@@ -30,7 +31,7 @@ function App() {
   const handleZoomOut = () => setFontSize(prev => Math.max(prev - 1, 12));
 
   // Helper to get storage key
-  const getStorageKey = (type: TestType) => `readerline_session_${type}`;
+  const getStorageKey = (type: TestType, diff: Difficulty) => `readerline_session_${type}_${diff}`;
   
   const handleTestSelect = async (testType: TestType) => {
     setLoading(true);
@@ -39,7 +40,7 @@ function App() {
 
     // 1. Check Cache (Skip for Quick Read)
     if (testType !== TestType.QUICK_READ) {
-      const cached = localStorage.getItem(getStorageKey(testType));
+      const cached = localStorage.getItem(getStorageKey(testType, difficulty));
       if (cached) {
         try {
           const sessionData = JSON.parse(cached);
@@ -49,19 +50,19 @@ function App() {
           return;
         } catch (e) {
           console.error("Failed to parse cached session", e);
-          localStorage.removeItem(getStorageKey(testType));
+          localStorage.removeItem(getStorageKey(testType, difficulty));
         }
       }
     }
 
     // 2. Fetch if not cached
     try {
-      const data = await generateReadingSession(testType);
+      const data = await generateReadingSession(testType, difficulty);
       setSession(data);
       
       // 3. Save to Cache (Skip for Quick Read)
       if (testType !== TestType.QUICK_READ) {
-        localStorage.setItem(getStorageKey(testType), JSON.stringify(data));
+        localStorage.setItem(getStorageKey(testType, difficulty), JSON.stringify(data));
       }
 
       setCurrentView('reading');
@@ -80,12 +81,12 @@ function App() {
     
     try {
       setSession(null); 
-      const data = await generateReadingSession(activeTestType);
+      const data = await generateReadingSession(activeTestType, difficulty);
       setSession(data);
 
       // Overwrite Cache (Skip for Quick Read)
       if (activeTestType !== TestType.QUICK_READ) {
-        localStorage.setItem(getStorageKey(activeTestType), JSON.stringify(data));
+        localStorage.setItem(getStorageKey(activeTestType, difficulty), JSON.stringify(data));
       }
 
     } catch (err) {
@@ -106,7 +107,7 @@ function App() {
   const handleSessionComplete = () => {
     // Clear cache when user finishes questions (not for Quick Read)
     if (activeTestType && activeTestType !== TestType.QUICK_READ) {
-      localStorage.removeItem(getStorageKey(activeTestType));
+      localStorage.removeItem(getStorageKey(activeTestType, difficulty));
     }
   };
 
@@ -126,7 +127,7 @@ function App() {
            <div className="w-16 h-16 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
            <h2 className="text-2xl font-serif font-bold text-slate-800 mb-2">Creating Your Session...</h2>
            <p className="text-slate-500">
-             Writing a {activeTestType || 'new'} passage just for you.
+             Writing a {activeTestType || 'new'} passage ({difficulty === Difficulty.CHALLENGE ? 'Expert' : 'Standard'}).
            </p>
          </div>
       )}
@@ -135,6 +136,8 @@ function App() {
         <main className="pb-20">
             <TestSelector 
               onSelect={handleTestSelect} 
+              difficulty={difficulty}
+              onDifficultyChange={setDifficulty}
             />
 
           {error && (

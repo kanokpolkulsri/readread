@@ -1,10 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { TestType, ReadingSession } from "../types";
+import { TestType, ReadingSession, Difficulty } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const generateReadingSession = async (testType: TestType): Promise<ReadingSession> => {
+export const generateReadingSession = async (testType: TestType, difficulty: Difficulty): Promise<ReadingSession> => {
   const model = "gemini-2.5-flash";
 
   let lengthInstruction = "";
@@ -41,6 +41,14 @@ export const generateReadingSession = async (testType: TestType): Promise<Readin
       avgTime = "2-3 mins";
       questionCountInstruction = "Generate EXACTLY 2 multiple-choice questions.";
       specificInstruction = "Topic: General Knowledge.";
+  }
+
+  // Define Difficulty Instruction
+  let difficultyInstruction = "";
+  if (difficulty === Difficulty.CHALLENGE) {
+    difficultyInstruction = "Proficiency Level: GRE / Advanced Academic / New York Times. Use sophisticated, obscure, and 'big' vocabulary (e.g., 'esoteric', 'obsequious', 'ephemeral', 'iconoclast'). Employ complex sentence structures, nuance, and an elevated academic or literary tone. The goal is to challenge a high-level reader.";
+  } else {
+    difficultyInstruction = "Proficiency Level: IELTS Band 8-9 (Expert). The language should be highly natural, fluent, and precise, similar to standard high-quality journalism (e.g., The Guardian, BBC) or contemporary literature. It should be perfect English, but does not need to use intentionally obscure or archaic words.";
   }
 
   // Define Schemas
@@ -91,7 +99,7 @@ export const generateReadingSession = async (testType: TestType): Promise<Readin
   
   ${lengthInstruction}
   
-  Proficiency Level: Intermediate / B2-C1. The language should be natural, varied, and moderately challenging.
+  ${difficultyInstruction}
   
   FORMATTING:
   1. Separate paragraphs with double newlines (\\n\\n).

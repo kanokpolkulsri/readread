@@ -4,6 +4,11 @@ export enum TestType {
   QUICK_READ = 'Quick Read'
 }
 
+export enum Difficulty {
+  STANDARD = 'Standard',
+  CHALLENGE = 'Challenge'
+}
+
 export interface Question {
   id: number;
   text: string;
