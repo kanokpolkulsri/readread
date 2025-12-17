@@ -14,9 +14,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
-  
-  // Font size state (default 18px for better mobile readability)
-  const [fontSize, setFontSize] = useState(16);
 
   // Split pane state
   const [splitRatio, setSplitRatio] = useState(() => {
@@ -75,9 +72,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
       questionsPanel.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-
-  const handleZoomIn = () => setFontSize(prev => Math.min(prev + 1, 32));
-  const handleZoomOut = () => setFontSize(prev => Math.max(prev - 1, 14));
 
   // Drag Handlers
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -165,31 +159,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-          {/* Zoom Controls */}
-          <div className="flex items-center bg-slate-100 rounded-lg p-1">
-            <button 
-              onClick={handleZoomOut}
-              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-white rounded transition-colors disabled:opacity-30"
-              disabled={fontSize <= 14}
-              title="Decrease font size"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-              </svg>
-            </button>
-            <span className="text-xs font-medium w-8 text-center tabular-nums text-slate-600">{fontSize}px</span>
-            <button 
-              onClick={handleZoomIn}
-              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-white rounded transition-colors disabled:opacity-30"
-              disabled={fontSize >= 32}
-              title="Increase font size"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
-          </div>
-          
           {/* Progress Bar (Visible only when taking quiz on desktop) */}
           {!showResults && !isQuickRead && (
              <div className="hidden lg:flex flex-col items-end w-32">
@@ -224,14 +193,12 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
           }}
         >
           <div className="max-w-2xl mx-auto p-6 md:p-10 lg:p-14 transition-all duration-200">
-             <h1 className="font-serif font-bold text-slate-900 mb-8 leading-tight" 
-                 style={{ fontSize: `${fontSize * 1.6}px` }}>
+             <h1 className="text-3xl font-serif font-bold text-slate-900 mb-8 leading-tight">
                {session.title}
              </h1>
-             <div className="prose prose-slate max-w-none text-slate-700 font-serif leading-loose">
+             <div className="prose prose-lg prose-slate max-w-none text-slate-700 font-serif leading-loose">
                 {formattedPassage.map((para, i) => (
-                  <p key={i} className="mb-6 indent-8 text-justify" 
-                     style={{ fontSize: `${fontSize}px`, lineHeight: '1.8' }}>
+                  <p key={i} className="mb-6 indent-8 text-justify">
                     {para}
                   </p>
                 ))}
@@ -262,14 +229,13 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
             id="questions-panel" 
             className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8 min-h-0 min-w-0"
         >
-          <div className="max-w-xl mx-auto space-y-8 pb-20 md:pb-0"
-               style={{ fontSize: `${Math.max(16, fontSize * 0.9)}px` }}> {/* Questions slightly smaller but scaled */}
+          <div className="max-w-xl mx-auto space-y-8 pb-20 md:pb-0">
             
             {/* Quick Read Mode: Show Summary Directly */}
             {isQuickRead && (
               <div className="space-y-6">
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                  <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2" style={{ fontSize: '1.2em' }}>
+                  <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                     <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>

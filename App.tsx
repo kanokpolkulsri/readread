@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import TestSelector from './components/TestSelector';
 import ReadingView from './components/ReadingView';
@@ -11,6 +11,23 @@ function App() {
   const [session, setSession] = useState<ReadingSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTestType, setActiveTestType] = useState<TestType | null>(null);
+  
+  // Global Font Size State
+  // Mobile (<768px) defaults to 16px, Desktop/Tablet defaults to 12px
+  const [fontSize, setFontSize] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768 ? 16 : 12;
+    }
+    return 12;
+  });
+
+  // Apply font size to root element to scale all rem-based sizing (Tailwind)
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}px`;
+  }, [fontSize]);
+
+  const handleZoomIn = () => setFontSize(prev => Math.min(prev + 1, 24));
+  const handleZoomOut = () => setFontSize(prev => Math.max(prev - 1, 12));
 
   // Helper to get storage key
   const getStorageKey = (type: TestType) => `readerline_session_${type}`;
@@ -98,6 +115,9 @@ function App() {
       <Header 
         onHomeClick={handleBackToHome} 
         currentView={currentView}
+        fontSize={fontSize}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
       />
       
       {/* Global Loader Overlay */}
