@@ -2,13 +2,11 @@ import React from 'react';
 
 interface HeaderProps {
   onHomeClick: () => void;
-  onAdminClick: () => void;
-  currentView: 'home' | 'reading' | 'admin';
+  currentView: 'home' | 'reading';
 }
 
 const Header: React.FC<HeaderProps> = ({ 
   onHomeClick, 
-  onAdminClick, 
   currentView
 }) => {
   return (
@@ -25,22 +23,6 @@ const Header: React.FC<HeaderProps> = ({
             </div>
             <span className="font-serif text-2xl font-bold text-slate-800 tracking-tight">readerline</span>
           </div>
-
-          {/* Desktop Nav */}
-          <nav className="flex items-center space-x-6">
-            <button 
-              onClick={onHomeClick} 
-              className={`font-medium transition-colors ${currentView === 'home' || currentView === 'reading' ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'}`}
-            >
-              Library
-            </button>
-            <button 
-              onClick={onAdminClick}
-              className={`font-medium transition-colors ${currentView === 'admin' ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'}`}
-            >
-              Admin
-            </button>
-          </nav>
         </div>
       </div>
     </header>

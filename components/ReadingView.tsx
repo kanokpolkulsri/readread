@@ -1,17 +1,34 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ReadingSession } from '../types';
 import Button from './Button';
 
 interface ReadingViewProps {
   session: ReadingSession;
   onBack: () => void;
-  onRetry: () => void;
+  onNext: () => void;
 }
 
-const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onRetry }) => {
+const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext }) => {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
+  const [showSummary, setShowSummary] = useState(false);
+  
+  // Split pane state
+  // Initial Ratio Logic:
+  // Desktop/Tablet (>= 768px): 0.5 (50% Passage / 50% Questions) - Standard Split
+  // Mobile (< 768px): 0.75 (75% Passage / 25% Questions) - Bottom Sheet style to maximize reading area
+  const [splitRatio, setSplitRatio] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768 ? 0.5 : 0.75;
+    }
+    return 0.5;
+  });
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+
+  const isQuickRead = session.questions.length === 0;
 
   // Scroll to top on mount
   useEffect(() => {
@@ -21,16 +38,8 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onRetry }) =
   // Text cleaning and paragraph splitting logic
   const formattedPassage = useMemo(() => {
     if (!session.passage) return [];
-    
-    // 1. Fix missing space after period (e.g. "end.The" -> "end. The")
-    // This looks for a period followed immediately by a capital letter
     const cleanedText = session.passage.replace(/\.([A-Z])/g, '. $1');
-    
-    // 2. Split by double newline or single newline, but prioritize double if available
-    // We try to normalize newlines first.
     const normalizedText = cleanedText.replace(/\r\n/g, '\n');
-    
-    // Split by at least one newline, but filter empty ones
     return normalizedText
       .split('\n')
       .map(p => p.trim())
@@ -38,7 +47,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onRetry }) =
   }, [session.passage]);
 
   const handleOptionSelect = (questionId: number, optionIndex: number) => {
-    if (showResults) return; // Prevent changing after submission
+    if (showResults) return;
     setSelectedAnswers(prev => ({
       ...prev,
       [questionId]: optionIndex
@@ -54,18 +63,73 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onRetry }) =
     });
     setScore(newScore);
     setShowResults(true);
-    
-    // Smooth scroll to top of questions to see results
     const questionsPanel = document.getElementById('questions-panel');
     if (questionsPanel) {
       questionsPanel.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const progress = Math.round((Object.keys(selectedAnswers).length / session.questions.length) * 100);
+  // Drag Handlers
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    isDraggingRef.current = true;
+    const isDesktop = window.innerWidth >= 768;
+    document.body.style.cursor = isDesktop ? 'col-resize' : 'row-resize';
+    document.body.style.userSelect = 'none';
+    
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('touchmove', handleDragMove, { passive: false });
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('touchend', handleDragEnd);
+  };
+
+  const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!isDraggingRef.current || !containerRef.current) return;
+    
+    const isDesktop = window.innerWidth >= 768;
+    if (e.type === 'touchmove') e.preventDefault(); 
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    let newRatio;
+    
+    if (isDesktop) {
+        const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+        const relativeX = clientX - containerRect.left;
+        newRatio = relativeX / containerRect.width;
+    } else {
+        const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+        const relativeY = clientY - containerRect.top;
+        newRatio = relativeY / containerRect.height;
+    }
+    
+    const clampedRatio = Math.min(Math.max(newRatio, 0.2), 0.9);
+    setSplitRatio(clampedRatio);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    isDraggingRef.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    
+    document.removeEventListener('mousemove', handleDragMove);
+    document.removeEventListener('touchmove', handleDragMove);
+    document.removeEventListener('mouseup', handleDragEnd);
+    document.removeEventListener('touchend', handleDragEnd);
+  }, [handleDragMove]);
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('touchmove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+      document.removeEventListener('touchend', handleDragEnd);
+    };
+  }, [handleDragMove, handleDragEnd]);
+
+
+  const progress = isQuickRead ? 100 : Math.round((Object.keys(selectedAnswers).length / session.questions.length) * 100);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-slate-50">
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-slate-50 relative">
       {/* Toolbar */}
       <div className="flex-none bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
         <div className="flex items-center gap-4">
@@ -81,15 +145,17 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onRetry }) =
           <div>
             <h2 className="font-bold text-slate-800 text-sm md:text-base line-clamp-1">{session.title}</h2>
             <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-medium">{session.difficulty}</span>
+              <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-medium">
+                {isQuickRead ? 'Short' : session.questions.length > 2 ? 'Long' : 'Standard'}
+              </span>
               <span>•</span>
               <span>{session.avgTime} read</span>
             </div>
           </div>
         </div>
         
-        {/* Progress Bar (Visible only when not done) */}
-        {!showResults && (
+        {/* Progress Bar (Visible only when taking quiz) */}
+        {!showResults && !isQuickRead && (
            <div className="hidden md:flex flex-col items-end w-48">
              <div className="flex justify-between w-full text-xs mb-1 text-slate-500">
                <span>Progress</span>
@@ -106,11 +172,21 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onRetry }) =
       </div>
 
       {/* Main Content: Split View */}
-      <div className="flex-grow flex flex-col md:flex-row overflow-hidden relative">
+      <div 
+        ref={containerRef}
+        className="flex-grow flex flex-col md:flex-row overflow-hidden relative"
+      >
         
         {/* Left Pane: Passage */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-14 bg-white border-r border-slate-200 scroll-smooth">
-          <div className="max-w-2xl mx-auto">
+        <div 
+          className="overflow-y-auto bg-white scroll-smooth"
+          style={{ 
+            flexBasis: `${splitRatio * 100}%`,
+            flexGrow: 0,
+            flexShrink: 0
+          }}
+        >
+          <div className="max-w-2xl mx-auto p-6 md:p-10 lg:p-14">
              <h1 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 mb-8 leading-tight">
                {session.title}
              </h1>
@@ -127,119 +203,183 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onRetry }) =
           </div>
         </div>
 
-        {/* Right Pane: Questions */}
-        <div id="questions-panel" className="flex-1 md:w-[45%] lg:w-[40%] overflow-y-auto bg-slate-50 p-6 md:p-8">
-          <div className="max-w-xl mx-auto space-y-8">
-            {showResults && (
-              <div className="mb-8 p-6 bg-white rounded-xl shadow-sm border border-slate-200 animate-fade-in">
-                <div className="text-center">
-                  <span className="text-sm font-bold uppercase tracking-wider text-slate-500">Session Score</span>
-                  <div className="text-4xl font-bold text-slate-900 mt-2 mb-1">
-                    {score} <span className="text-xl text-slate-400">/ {session.questions.length}</span>
+        {/* Drag Handle */}
+        <div 
+          className="flex-none bg-slate-100 border-slate-200 flex items-center justify-center z-20 hover:bg-indigo-50 active:bg-indigo-100 transition-colors touch-none
+                     md:w-3 md:h-full md:cursor-col-resize md:border-x
+                     w-full h-6 cursor-row-resize border-y"
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
+        >
+          {/* Handle visual */}
+          <div className="bg-slate-300 rounded-full
+                          md:w-1 md:h-8
+                          w-8 h-1" 
+          />
+        </div>
+
+        {/* Right Pane: Questions & Summary */}
+        <div 
+            id="questions-panel" 
+            className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8 min-h-0 min-w-0"
+        >
+          <div className="max-w-xl mx-auto space-y-8 pb-20 md:pb-0">
+            
+            {/* Quick Read Mode: Show Summary Directly */}
+            {isQuickRead && (
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Summary
+                  </h3>
+                  <div className="text-slate-700 leading-relaxed text-justify">
+                    {session.summary || "Summary not available."}
                   </div>
-                  <p className="text-slate-600 mb-6">
-                    {score === session.questions.length ? "Perfect score! Outstanding reading comprehension." : 
-                     score >= session.questions.length / 2 ? "Good job! Review the explanations to improve." : 
-                     "Keep practicing. Analyze the logic behind the correct answers."}
-                  </p>
-                  <Button onClick={onRetry} variant="primary" className="w-full">
-                    Start New Practice
+                </div>
+
+                <div className="flex gap-3">
+                  <Button onClick={onNext} variant="primary" className="flex-1">
+                    Read Another
+                  </Button>
+                  <Button onClick={onBack} variant="outline" className="flex-1">
+                    Menu
                   </Button>
                 </div>
               </div>
             )}
 
-            {session.questions.map((q, qIdx) => {
-              const isCorrect = selectedAnswers[q.id] === q.correctAnswerIndex;
-              const isSelected = selectedAnswers[q.id] !== undefined;
-              
-              return (
-                <div key={q.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                  <div className="flex items-start gap-3 mb-4">
-                    <span className="flex-none bg-indigo-50 text-indigo-700 font-bold text-sm w-6 h-6 rounded flex items-center justify-center mt-0.5">
-                      {qIdx + 1}
-                    </span>
-                    <h3 className="text-slate-900 font-medium leading-relaxed">
-                      {q.text}
-                    </h3>
-                  </div>
-
-                  <div className="space-y-3">
-                    {q.options.map((option, oIdx) => {
-                      let btnClass = "w-full text-left p-3 rounded-lg border text-sm transition-all duration-200 relative ";
-                      
-                      if (showResults) {
-                        if (oIdx === q.correctAnswerIndex) {
-                          btnClass += "bg-emerald-50 border-emerald-500 text-emerald-800 font-medium"; // Correct answer
-                        } else if (selectedAnswers[q.id] === oIdx) {
-                          btnClass += "bg-red-50 border-red-500 text-red-800"; // Wrong selection
-                        } else {
-                          btnClass += "bg-slate-50 border-slate-100 text-slate-400 opacity-60"; // Other
-                        }
-                      } else {
-                        if (selectedAnswers[q.id] === oIdx) {
-                          btnClass += "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm ring-1 ring-indigo-500";
-                        } else {
-                          btnClass += "bg-white border-slate-200 hover:bg-slate-50 hover:border-indigo-300 text-slate-600";
-                        }
-                      }
-
-                      return (
-                        <button
-                          key={oIdx}
-                          onClick={() => handleOptionSelect(q.id, oIdx)}
-                          disabled={showResults}
-                          className={btnClass}
-                        >
-                          <div className="flex items-start">
-                            <span className="mr-3 font-semibold opacity-50 min-w-[1.2rem]">{String.fromCharCode(65 + oIdx)}.</span>
-                            <span>{option}</span>
-                          </div>
-                          {showResults && oIdx === q.correctAnswerIndex && (
-                            <svg className="w-5 h-5 text-emerald-600 absolute right-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                           {showResults && selectedAnswers[q.id] === oIdx && oIdx !== q.correctAnswerIndex && (
-                            <svg className="w-5 h-5 text-red-500 absolute right-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {showResults && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <div className="flex items-start gap-2 text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
-                        <svg className="w-5 h-5 text-indigo-500 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div>
-                          <span className="font-semibold text-slate-900 block mb-1">Explanation</span>
-                          {q.explanation}
-                        </div>
+            {/* Standard Mode: Questions & Collapsible Summary */}
+            {!isQuickRead && (
+              <>
+                {showResults && (
+                  <div className="mb-8 p-6 bg-white rounded-xl shadow-sm border border-slate-200 animate-fade-in">
+                    <div className="text-center">
+                      <span className="text-sm font-bold uppercase tracking-wider text-slate-500">Session Score</span>
+                      <div className="text-4xl font-bold text-slate-900 mt-2 mb-1">
+                        {score} <span className="text-xl text-slate-400">/ {session.questions.length}</span>
                       </div>
+                      <p className="text-slate-600 mb-6">
+                        {score === session.questions.length ? "Perfect score!" : 
+                        score >= session.questions.length / 2 ? "Good job!" : 
+                        "Keep practicing."}
+                      </p>
+                      <Button onClick={onNext} variant="primary" className="w-full">
+                        Read More
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {session.questions.map((q, qIdx) => {
+                  return (
+                    <div key={q.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                      <div className="flex items-start gap-3 mb-4">
+                        <span className="flex-none bg-slate-100 text-slate-700 font-bold text-sm w-6 h-6 rounded flex items-center justify-center mt-0.5">
+                          {qIdx + 1}
+                        </span>
+                        <h3 className="text-slate-900 font-medium leading-relaxed">
+                          {q.text}
+                        </h3>
+                      </div>
+
+                      <div className="space-y-3">
+                        {q.options.map((option, oIdx) => {
+                          let btnClass = "w-full text-left p-3 rounded-lg border text-sm transition-all duration-200 relative ";
+                          
+                          if (showResults) {
+                            if (oIdx === q.correctAnswerIndex) {
+                              btnClass += "bg-emerald-50 border-emerald-500 text-emerald-800 font-medium";
+                            } else if (selectedAnswers[q.id] === oIdx) {
+                              btnClass += "bg-red-50 border-red-500 text-red-800";
+                            } else {
+                              btnClass += "bg-slate-50 border-slate-100 text-slate-400 opacity-60";
+                            }
+                          } else {
+                            if (selectedAnswers[q.id] === oIdx) {
+                              btnClass += "bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm ring-1 ring-indigo-500";
+                            } else {
+                              btnClass += "bg-white border-slate-200 hover:bg-slate-50 hover:border-indigo-300 text-slate-600";
+                            }
+                          }
+
+                          return (
+                            <button
+                              key={oIdx}
+                              onClick={() => handleOptionSelect(q.id, oIdx)}
+                              disabled={showResults}
+                              className={btnClass}
+                            >
+                              <div className="flex items-start">
+                                <span className="mr-3 font-semibold opacity-50 min-w-[1.2rem]">{String.fromCharCode(65 + oIdx)}.</span>
+                                <span>{option}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {showResults && (
+                        <div className="mt-4 pt-4 border-t border-slate-100">
+                          <div className="flex items-start gap-2 text-sm text-slate-600 bg-slate-50 p-3 rounded-lg">
+                            <span className="font-semibold text-slate-900 block mb-1">Explanation:</span>
+                            {q.explanation}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                
+                {!showResults && (
+                  <div className="pt-4 pb-4">
+                    <Button 
+                      onClick={handleSubmit} 
+                      className="w-full py-3 text-lg"
+                      disabled={Object.keys(selectedAnswers).length < session.questions.length}
+                    >
+                      {Object.keys(selectedAnswers).length < session.questions.length 
+                        ? `Submit (${Object.keys(selectedAnswers).length}/${session.questions.length})` 
+                        : "Submit Answers"}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Collapsible Summary for Standard Modes */}
+                <div className="border-t border-slate-200 pt-6 mt-8">
+                  <button 
+                    onClick={() => setShowSummary(!showSummary)}
+                    className="w-full flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200 shadow-sm hover:border-indigo-300 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600 group-hover:bg-indigo-100 transition-colors">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div className="text-left">
+                         <span className="block font-semibold text-slate-800">Passage Summary</span>
+                         <span className="text-xs text-slate-500">Check your understanding</span>
+                      </div>
+                    </div>
+                    <div className={`p-1 rounded-full text-slate-400 transition-transform duration-200 ${showSummary ? 'rotate-180 bg-slate-100' : ''}`}>
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </button>
+                  
+                  {showSummary && (
+                    <div className="mt-3 p-5 bg-white rounded-lg border border-slate-200 text-slate-700 leading-relaxed animate-fade-in text-justify">
+                      {session.summary || "Summary not available for this session."}
                     </div>
                   )}
                 </div>
-              );
-            })}
-            
-            {!showResults && (
-              <div className="pt-4 pb-12">
-                <Button 
-                  onClick={handleSubmit} 
-                  className="w-full py-3 text-lg"
-                  disabled={Object.keys(selectedAnswers).length < session.questions.length}
-                >
-                  {Object.keys(selectedAnswers).length < session.questions.length 
-                    ? `Answer all questions to submit (${Object.keys(selectedAnswers).length}/${session.questions.length})` 
-                    : "Submit Answers"}
-                </Button>
-              </div>
+              </>
             )}
+            
           </div>
         </div>
       </div>

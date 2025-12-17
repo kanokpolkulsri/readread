@@ -1,102 +1,104 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { TestType, ReadingSession, DifficultyLevel } from "../types";
+import { TestType, ReadingSession } from "../types";
 
 // Initialize Gemini Client
-// Note: API_KEY is expected to be in process.env
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-export const generateReadingSession = async (testType: TestType, level: DifficultyLevel): Promise<ReadingSession> => {
+export const generateReadingSession = async (testType: TestType): Promise<ReadingSession> => {
   const model = "gemini-2.5-flash";
 
-  const schema = {
-    type: Type.OBJECT,
-    properties: {
-      title: { type: Type.STRING, description: "A catchy title for the passage." },
-      passage: { type: Type.STRING, description: "The reading passage text. Must use double newlines (\\n\\n) to separate paragraphs." },
-      difficulty: { type: Type.STRING, description: "The displayed difficulty level." },
-      avgTime: { type: Type.STRING, description: "Estimated reading time, e.g., '5 mins'." },
-      questions: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            id: { type: Type.INTEGER },
-            text: { type: Type.STRING, description: "The question stem." },
-            options: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "4 or 5 multiple choice options."
-            },
-            correctAnswerIndex: { type: Type.INTEGER, description: "Index of the correct option (0-based)." },
-            explanation: { type: Type.STRING, description: "Explanation for why the answer is correct." }
-          },
-          required: ["id", "text", "options", "correctAnswerIndex", "explanation"]
-        }
-      }
-    },
-    required: ["title", "passage", "difficulty", "avgTime", "questions"]
-  };
-
+  let lengthInstruction = "";
+  let avgTime = "";
+  let questionCountInstruction = "";
   let specificInstruction = "";
-  
-  // Topic definitions
+  let isQuickRead = testType === TestType.QUICK_READ;
+
+  // Define constraints based on Topic
   switch (testType) {
-    case TestType.ACADEMIC:
-      specificInstruction = "Topic: Academic & Test Prep (GRE/LSAT/GMAT style). Style: Dense, argumentative, rigorous, and logical. Subjects: Philosophy, Social Science, or Abstract Theory.";
+    case TestType.QUICK_READ:
+      lengthInstruction = "STRICT LENGTH CONSTRAINT: 150-200 words.";
+      avgTime = "1-2 mins";
+      questionCountInstruction = "Do NOT generate questions.";
+      specificInstruction = "Topic: Random Interesting Knowledge. Pick a random fascinating topic (e.g., Space, Psychology, Nature, Ancient History, or Pop Culture). Style: Engaging, educational, and accessible.";
       break;
-    case TestType.LITERATURE:
-      specificInstruction = "Topic: Literary Fiction. Style: Narrative, descriptive, and emotive. Resemble a classic novel chapter, fancy prose, or a dramatic short story. Focus on character feelings, setting, and metaphorical language.";
-      break;
+
     case TestType.BUSINESS:
-      specificInstruction = "Topic: Business & Economy. Style: Professional, analytical, and strategic. Resemble The Wall Street Journal or Harvard Business Review. Subjects: Corporate Strategy, Markets, Leadership, or Economics.";
+      lengthInstruction = "STRICT LENGTH CONSTRAINT: 250-300 words.";
+      avgTime = "3-4 mins";
+      questionCountInstruction = "Generate EXACTLY 3 multiple-choice questions.";
+      specificInstruction = "Topic: Business Case Study. Style: Harvard Business Case style. Professional, analytical, and informative. Discuss a specific company scenario, market trend, or economic challenge.";
       break;
-    case TestType.SCIENCE:
-      specificInstruction = "Topic: Science & Nature. Style: Factual, explanatory, and detailed. Resemble National Geographic or Scientific American. Subjects: Biology, Psychology, Environment, or Physics.";
+
+    case TestType.ENTERTAINMENT:
+      lengthInstruction = "STRICT LENGTH CONSTRAINT: 200-250 words.";
+      avgTime = "2-3 mins";
+      questionCountInstruction = "Generate EXACTLY 3 multiple-choice questions.";
+      specificInstruction = "Topic: Fiction, Drama, or Celebrity Culture. Style: Narrative or Gossip column style. Write a scene from a story, a dramatic dialogue, or a piece about social dynamics. It should be engaging, character-driven, and slightly dramatic.";
       break;
-    case TestType.TECHNOLOGY:
-      specificInstruction = "Topic: Technology & The Future. Style: Modern, forward-looking, and technical yet accessible. Resemble Wired or TechCrunch. Subjects: Artificial Intelligence, Cybernetics, Coding, or Digital Ethics.";
-      break;
-    case TestType.HORROR:
-      specificInstruction = "Topic: Mystery & Horror. Style: Suspenseful, atmospheric, dark, and tense. Focus on sensory details, fear, and building a creepy mood. Resemble Stephen King or Gothic literature.";
-      break;
-    case TestType.HISTORY:
-      specificInstruction = "Topic: History & Society. Style: Narrative non-fiction, informative, and retrospective. Focus on historical events, biographies, or societal changes over time.";
-      break;
-    case TestType.COMEDY:
-      specificInstruction = "Topic: Comedy & Satire. Style: Humorous, witty, sarcastic, or light-hearted. Resemble a funny essay, a stand-up routine, or a satirical article.";
-      break;
+      
     default:
-      specificInstruction = "Topic: General Reading. Style: Standard prose.";
+      lengthInstruction = "STRICT LENGTH CONSTRAINT: 200-250 words.";
+      avgTime = "2-3 mins";
+      questionCountInstruction = "Generate EXACTLY 2 multiple-choice questions.";
+      specificInstruction = "Topic: General Knowledge.";
   }
 
-  // Proficiency Level Adjustments
-  let levelInstruction = "";
-  switch (level) {
-    case DifficultyLevel.BEGINNER:
-      levelInstruction = "Proficiency: BEGINNER. Use simple vocabulary (CEFR A2/B1). Short sentences. Avoid complex grammar. Clear and direct structure.";
-      break;
-    case DifficultyLevel.INTERMEDIATE:
-      levelInstruction = "Proficiency: INTERMEDIATE. Use standard vocabulary (CEFR B2). Moderate sentence length. Some compound sentences.";
-      break;
-    case DifficultyLevel.ADVANCED:
-      levelInstruction = "Proficiency: ADVANCED. Use sophisticated vocabulary (CEFR C1/C2). Complex sentence structures. Nuanced expressions.";
-      break;
+  // Define Schemas
+  let schema;
+  
+  if (isQuickRead) {
+    schema = {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING, description: "A catchy title." },
+        passage: { type: Type.STRING, description: "The text. Use double newlines (\\n\\n) for paragraphs." },
+        avgTime: { type: Type.STRING },
+        summary: { type: Type.STRING, description: "A concise 2-3 sentence summary of the main points." }
+      },
+      required: ["title", "passage", "avgTime", "summary"]
+    };
+  } else {
+    schema = {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING, description: "A catchy title." },
+        passage: { type: Type.STRING, description: "The text. Use double newlines (\\n\\n) for paragraphs." },
+        avgTime: { type: Type.STRING },
+        summary: { type: Type.STRING, description: "A concise 2-3 sentence summary of the main points." },
+        questions: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.INTEGER },
+              text: { type: Type.STRING },
+              options: { type: Type.ARRAY, items: { type: Type.STRING } },
+              correctAnswerIndex: { type: Type.INTEGER },
+              explanation: { type: Type.STRING }
+            },
+            required: ["id", "text", "options", "correctAnswerIndex", "explanation"]
+          }
+        }
+      },
+      required: ["title", "passage", "avgTime", "questions", "summary"]
+    };
   }
 
   const prompt = `
-  Create a unique reading practice session.
+  Create a reading practice session.
   
   ${specificInstruction}
   
-  ${levelInstruction}
+  ${lengthInstruction}
   
-  FORMATTING RULES (CRITICAL):
-  1. Separate every paragraph with a double newline (\\n\\n).
-  2. Ensure every sentence ends with a punctuation mark followed by a space. Do not attach the next sentence immediately to the period.
-  3. Indent the start of paragraphs is not required in the text, but clear separation is mandatory.
-  4. Length: Approximately 300-600 words depending on the style.
-
-  Generate 4 to 5 multiple-choice questions suitable for the proficiency level selected.
+  Proficiency Level: Intermediate / B2-C1. The language should be natural, varied, and moderately challenging.
+  
+  FORMATTING:
+  1. Separate paragraphs with double newlines (\\n\\n).
+  2. Ensure standard punctuation.
+  
+  ${questionCountInstruction}
+  ALSO generate a 'summary' field.
   `;
 
   try {
@@ -106,12 +108,14 @@ export const generateReadingSession = async (testType: TestType, level: Difficul
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,
-        systemInstruction: "You are an expert author and English teacher. Your priority is generating engaging, perfectly formatted text that perfectly matches the requested genre/topic."
+        systemInstruction: "You are an expert English tutor generating reading materials."
       }
     });
 
     if (response.text) {
-      return JSON.parse(response.text) as ReadingSession;
+      const result = JSON.parse(response.text) as ReadingSession;
+      if (!result.questions) result.questions = [];
+      return result;
     } else {
       throw new Error("No content generated.");
     }

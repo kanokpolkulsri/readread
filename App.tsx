@@ -2,27 +2,22 @@ import React, { useState } from 'react';
 import Header from './components/Header';
 import TestSelector from './components/TestSelector';
 import ReadingView from './components/ReadingView';
-import AdminDashboard from './components/AdminDashboard';
 import { generateReadingSession } from './services/geminiService';
-import { databaseService } from './services/databaseService';
-import { ReadingSession, TestType, DifficultyLevel } from './types';
+import { ReadingSession, TestType } from './types';
 
 function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'reading' | 'admin'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'reading'>('home');
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<ReadingSession | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [difficultyLevel, setDifficultyLevel] = useState<DifficultyLevel>(DifficultyLevel.INTERMEDIATE);
+  const [activeTestType, setActiveTestType] = useState<TestType | null>(null);
   
   const handleTestSelect = async (testType: TestType) => {
     setLoading(true);
     setError(null);
+    setActiveTestType(testType);
     try {
-      const data = await generateReadingSession(testType, difficultyLevel);
-      
-      // Save to "Database" immediately upon generation
-      await databaseService.saveSession(data, testType, difficultyLevel);
-      
+      const data = await generateReadingSession(testType);
       setSession(data);
       setCurrentView('reading');
     } catch (err) {
@@ -33,46 +28,54 @@ function App() {
     }
   };
 
+  const handleNextSession = async () => {
+    if (!activeTestType) return;
+    setLoading(true);
+    setError(null);
+    // Keep currentView as 'reading' but show loader
+    try {
+      // Small delay to allow UI to show loading state if instant
+      setSession(null); 
+      const data = await generateReadingSession(activeTestType);
+      setSession(data);
+    } catch (err) {
+      setError("Failed to generate next session. Please try again.");
+      setCurrentView('home'); // Fallback to home on error
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleBackToHome = () => {
     setCurrentView('home');
     setSession(null);
-  };
-
-  const handleRetry = () => {
-    setCurrentView('home');
-    setSession(null);
-  };
-
-  const getIndefiniteArticle = (word: string) => {
-    const vowels = ['a', 'e', 'i', 'o', 'u'];
-    return vowels.includes(word[0].toLowerCase()) ? 'an' : 'a';
+    setActiveTestType(null);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Header 
-        onHomeClick={() => setCurrentView('home')} 
-        onAdminClick={() => setCurrentView('admin')}
+        onHomeClick={handleBackToHome} 
         currentView={currentView}
       />
       
+      {/* Global Loader Overlay */}
+      {loading && (
+         <div className="fixed inset-0 bg-white/90 backdrop-blur-sm z-[60] flex flex-col items-center justify-center">
+           <div className="w-16 h-16 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
+           <h2 className="text-2xl font-serif font-bold text-slate-800 mb-2">Creating Your Session...</h2>
+           <p className="text-slate-500">
+             Writing a {activeTestType || 'new'} passage just for you.
+           </p>
+         </div>
+      )}
+
       {currentView === 'home' && (
         <main className="pb-20">
-          {loading ? (
-             <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-               <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-               <h2 className="text-xl font-serif font-bold text-slate-800">Constructing Passage...</h2>
-               <p className="text-slate-500 mt-2">
-                 Drafting {getIndefiniteArticle(difficultyLevel)} {difficultyLevel.toLowerCase()} level session...
-               </p>
-             </div>
-          ) : (
             <TestSelector 
               onSelect={handleTestSelect} 
-              selectedLevel={difficultyLevel}
-              onLevelChange={setDifficultyLevel}
             />
-          )}
 
           {error && (
             <div className="fixed bottom-6 right-6 bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-bounce">
@@ -86,15 +89,11 @@ function App() {
         </main>
       )}
 
-      {currentView === 'admin' && (
-        <AdminDashboard />
-      )}
-
-      {currentView === 'reading' && session && (
+      {currentView === 'reading' && session && !loading && (
         <ReadingView 
           session={session} 
           onBack={handleBackToHome}
-          onRetry={handleRetry}
+          onNext={handleNextSession}
         />
       )}
 
