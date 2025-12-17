@@ -6,7 +6,11 @@ interface HeaderProps {
   currentView: 'home' | 'reading' | 'admin';
 }
 
-const Header: React.FC<HeaderProps> = ({ onHomeClick, onAdminClick, currentView }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  onHomeClick, 
+  onAdminClick, 
+  currentView
+}) => {
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -23,7 +27,7 @@ const Header: React.FC<HeaderProps> = ({ onHomeClick, onAdminClick, currentView 
           </div>
 
           {/* Desktop Nav */}
-          <nav className="flex space-x-8">
+          <nav className="flex items-center space-x-6">
             <button 
               onClick={onHomeClick} 
               className={`font-medium transition-colors ${currentView === 'home' || currentView === 'reading' ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'}`}
@@ -34,7 +38,7 @@ const Header: React.FC<HeaderProps> = ({ onHomeClick, onAdminClick, currentView 
               onClick={onAdminClick}
               className={`font-medium transition-colors ${currentView === 'admin' ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'}`}
             >
-              Admin Dashboard
+              Admin
             </button>
           </nav>
         </div>

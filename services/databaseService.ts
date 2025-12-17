@@ -1,10 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "./supabase";
 import { ReadingSession, SavedSession, TestType, DifficultyLevel } from "../types";
-
-// Supabase Configuration
-const supabaseUrl = 'https://yachmbljmjwwtuqzldul.supabase.co';
-const supabaseKey = 'sb_publishable_ycqNi2d-OAoVCuxd-WRySQ_P-_-GXQb';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Legacy/Mock export to prevent breaking unused LoginModal if it exists
 export const mockLogin = async (email: string) => {
@@ -21,7 +16,7 @@ export const databaseService = {
         difficulty: session.difficulty,
         avg_time: session.avgTime,
         questions: session.questions,
-        question_count: session.questions.length, // Explicitly storing count
+        question_count: session.questions.length,
         topic: testType,
         level: level,
       };
