@@ -31,6 +31,13 @@ export interface ReadingSession {
   questions: Question[];
 }
 
+export interface SavedSession extends ReadingSession {
+  id: string;
+  timestamp: number;
+  testType: TestType;
+  level: DifficultyLevel;
+}
+
 export interface User {
   name: string;
   email: string;

@@ -3,12 +3,14 @@ import { User } from '../types';
 
 interface HeaderProps {
   onHomeClick: () => void;
+  onAdminClick: () => void;
+  currentView: 'home' | 'reading' | 'admin';
   user: User | null;
   onLoginClick: () => void;
   onLogoutClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onHomeClick, user, onLoginClick, onLogoutClick }) => {
+const Header: React.FC<HeaderProps> = ({ onHomeClick, onAdminClick, currentView, user, onLoginClick, onLogoutClick }) => {
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,9 +28,19 @@ const Header: React.FC<HeaderProps> = ({ onHomeClick, user, onLoginClick, onLogo
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex space-x-8">
-            <button onClick={onHomeClick} className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">Library</button>
+            <button 
+              onClick={onHomeClick} 
+              className={`font-medium transition-colors ${currentView === 'home' || currentView === 'reading' ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'}`}
+            >
+              Library
+            </button>
             <button className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">My Progress</button>
-            <button className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">Plans</button>
+            <button 
+              onClick={onAdminClick}
+              className={`font-medium transition-colors ${currentView === 'admin' ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'}`}
+            >
+              Admin Dashboard
+            </button>
           </nav>
 
           {/* Auth Buttons */}
@@ -54,20 +66,12 @@ const Header: React.FC<HeaderProps> = ({ onHomeClick, user, onLoginClick, onLogo
                 </button>
               </div>
             ) : (
-              <>
-                <button 
-                  onClick={onLoginClick}
-                  className="text-slate-600 hover:text-slate-900 font-medium hidden sm:block"
-                >
-                  Log in
-                </button>
-                <button 
-                  onClick={onLoginClick}
-                  className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2"
-                >
-                  Sign up
-                </button>
-              </>
+              <button 
+                onClick={onLoginClick}
+                className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2"
+              >
+                Log in
+              </button>
             )}
           </div>
         </div>
