@@ -33,7 +33,7 @@ export const generateReadingSession = async (testType: TestType): Promise<Readin
       lengthInstruction = "STRICT LENGTH CONSTRAINT: 200-250 words.";
       avgTime = "2-3 mins";
       questionCountInstruction = "Generate EXACTLY 3 multiple-choice questions.";
-      specificInstruction = "Topic: Fiction, Drama, or Celebrity Culture. Style: Narrative or Gossip column style. Write a scene from a story, a dramatic dialogue, or a piece about social dynamics. It should be engaging, character-driven, and slightly dramatic.";
+      specificInstruction = "Topic: Fiction exploring themes of Love, Notoriety, and Sadness. Style: Literary narrative or dramatic scene. Write a compelling story or scene focusing on heartbreak, infamous characters, or melancholic events. Avoid celebrity gossip; focus on emotional depth and storytelling.";
       break;
       
     default:

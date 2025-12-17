@@ -20,8 +20,8 @@ const BOOKSHELF = [
   { 
     type: TestType.ENTERTAINMENT, 
     title: 'Fiction & Drama', 
-    subtitle: 'Stories & Gossip',
-    description: '200-250 words. Narratives, dialogue, and drama.',
+    subtitle: 'Love, Notoriety & Sadness',
+    description: '200-250 words. Stories of heartbreak, infamy, and melancholic moments.',
     icon: (
       <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
