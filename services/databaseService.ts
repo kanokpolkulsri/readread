@@ -1,67 +1,52 @@
 import { ReadingSession, SavedSession, TestType, DifficultyLevel } from "../types";
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
 
-// Your web app's Firebase configuration
-// These should ideally come from process.env variables
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "YOUR_API_KEY_HERE",
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const COLLECTION_NAME = 'reading_sessions';
+// NOTE: Replaced Firebase with localStorage to resolve import errors and ensure data persistence works without external configuration.
+const STORAGE_KEY = 'readerline_sessions';
 
 export const databaseService = {
-  // Save a new session to Firestore
+  // Save a new session to LocalStorage
   saveSession: async (session: ReadingSession, testType: TestType, level: DifficultyLevel): Promise<SavedSession> => {
     try {
       const timestamp = Date.now();
+      const id = 'sess_' + timestamp + '_' + Math.random().toString(36).substring(2, 9);
       
-      const docData = {
+      const sessionData: SavedSession = {
         ...session,
+        id,
         timestamp,
         testType,
         level
       };
 
-      const docRef = await addDoc(collection(db, COLLECTION_NAME), docData);
+      // Get existing sessions
+      const existingData = localStorage.getItem(STORAGE_KEY);
+      const sessions: SavedSession[] = existingData ? JSON.parse(existingData) : [];
       
-      console.log("Session written to Firestore with ID: ", docRef.id);
+      // Add new session
+      sessions.push(sessionData);
       
-      return {
-        ...docData,
-        id: docRef.id
-      };
+      // Save back
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      
+      console.log("Session saved to LocalStorage with ID: ", id);
+      
+      return sessionData;
     } catch (error) {
-      console.error("Error adding document to Firestore: ", error);
+      console.error("Error saving to LocalStorage: ", error);
       throw error;
     }
   },
 
-  // Retrieve all sessions (SELECT * FROM reading_sessions ORDER BY timestamp DESC)
+  // Retrieve all sessions (mimics SELECT * FROM reading_sessions ORDER BY timestamp DESC)
   getAllSessions: async (): Promise<SavedSession[]> => {
     try {
-      const q = query(collection(db, COLLECTION_NAME), orderBy("timestamp", "desc"));
-      const querySnapshot = await getDocs(q);
+      const existingData = localStorage.getItem(STORAGE_KEY);
+      const sessions: SavedSession[] = existingData ? JSON.parse(existingData) : [];
       
-      const sessions: SavedSession[] = [];
-      querySnapshot.forEach((doc) => {
-        sessions.push({
-          id: doc.id,
-          ...doc.data()
-        } as SavedSession);
-      });
-      
-      return sessions;
+      // Sort by timestamp desc
+      return sessions.sort((a, b) => b.timestamp - a.timestamp);
     } catch (error) {
-      console.error("Error getting documents from Firestore: ", error);
+      console.error("Error reading from LocalStorage: ", error);
       return [];
     }
   }
