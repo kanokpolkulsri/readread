@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import Header from './components/Header';
 import TestSelector from './components/TestSelector';
 import ReadingView from './components/ReadingView';
-import LoginModal from './components/LoginModal';
 import AdminDashboard from './components/AdminDashboard';
 import { generateReadingSession } from './services/geminiService';
 import { databaseService } from './services/databaseService';
-import { ReadingSession, TestType, DifficultyLevel, User } from './types';
+import { ReadingSession, TestType, DifficultyLevel } from './types';
 
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'reading' | 'admin'>('home');
@@ -15,10 +14,6 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [difficultyLevel, setDifficultyLevel] = useState<DifficultyLevel>(DifficultyLevel.INTERMEDIATE);
   
-  // Login State
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-
   const handleTestSelect = async (testType: TestType) => {
     setLoading(true);
     setError(null);
@@ -26,7 +21,7 @@ function App() {
       const data = await generateReadingSession(testType, difficultyLevel);
       
       // Save to "Database" immediately upon generation
-      databaseService.saveSession(data, testType, difficultyLevel);
+      await databaseService.saveSession(data, testType, difficultyLevel);
       
       setSession(data);
       setCurrentView('reading');
@@ -55,19 +50,10 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={(userData) => setUser(userData)}
-      />
-
       <Header 
         onHomeClick={() => setCurrentView('home')} 
         onAdminClick={() => setCurrentView('admin')}
         currentView={currentView}
-        user={user}
-        onLoginClick={() => setIsLoginModalOpen(true)}
-        onLogoutClick={() => setUser(null)}
       />
       
       {currentView === 'home' && (

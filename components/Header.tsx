@@ -1,16 +1,12 @@
 import React from 'react';
-import { User } from '../types';
 
 interface HeaderProps {
   onHomeClick: () => void;
   onAdminClick: () => void;
   currentView: 'home' | 'reading' | 'admin';
-  user: User | null;
-  onLoginClick: () => void;
-  onLogoutClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onHomeClick, onAdminClick, currentView, user, onLoginClick, onLogoutClick }) => {
+const Header: React.FC<HeaderProps> = ({ onHomeClick, onAdminClick, currentView }) => {
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -27,14 +23,13 @@ const Header: React.FC<HeaderProps> = ({ onHomeClick, onAdminClick, currentView,
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="flex space-x-8">
             <button 
               onClick={onHomeClick} 
               className={`font-medium transition-colors ${currentView === 'home' || currentView === 'reading' ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'}`}
             >
               Library
             </button>
-            <button className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">My Progress</button>
             <button 
               onClick={onAdminClick}
               className={`font-medium transition-colors ${currentView === 'admin' ? 'text-indigo-600' : 'text-slate-600 hover:text-indigo-600'}`}
@@ -42,38 +37,6 @@ const Header: React.FC<HeaderProps> = ({ onHomeClick, onAdminClick, currentView,
               Admin Dashboard
             </button>
           </nav>
-
-          {/* Auth Buttons */}
-          <div className="flex items-center space-x-4">
-            {user ? (
-              <div className="flex items-center gap-3">
-                <div className="text-right hidden sm:block">
-                  <div className="text-sm font-semibold text-slate-900">{user.name}</div>
-                  <div className="text-xs text-slate-500">Free Account</div>
-                </div>
-                <button 
-                  onClick={onLogoutClick}
-                  className="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 overflow-hidden hover:ring-2 hover:ring-indigo-400 transition-all"
-                  title="Sign out"
-                >
-                  {user.avatar ? (
-                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-indigo-700 font-bold">
-                      {user.name.charAt(0)}
-                    </div>
-                  )}
-                </button>
-              </div>
-            ) : (
-              <button 
-                onClick={onLoginClick}
-                className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2"
-              >
-                Log in
-              </button>
-            )}
-          </div>
         </div>
       </div>
     </header>

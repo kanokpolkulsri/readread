@@ -43,8 +43,3 @@ export interface User {
   email: string;
   avatar?: string;
 }
-
-export interface UserState {
-  isLoggedIn: boolean;
-  user?: User;
-}

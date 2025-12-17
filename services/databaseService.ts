@@ -1,52 +1,69 @@
 import { ReadingSession, SavedSession, TestType, DifficultyLevel } from "../types";
 
-// NOTE: Replaced Firebase with localStorage to resolve import errors and ensure data persistence works without external configuration.
-const STORAGE_KEY = 'readerline_sessions';
+// Using a local storage mock implementation to ensure functionality.
+const STORAGE_KEY = 'readerline_sessions_local';
+
+export const mockLogin = async (email: string) => {
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  // Mock logic
+  if (email.includes('error')) {
+    throw new Error("Invalid credentials");
+  }
+  
+  if (email === 'exists@test.com') {
+     throw new Error("User already exists. Sign in?");
+  }
+
+  return {
+    user: {
+      email: email,
+      uid: 'mock-uid-' + Date.now(),
+    }
+  };
+};
 
 export const databaseService = {
   // Save a new session to LocalStorage
   saveSession: async (session: ReadingSession, testType: TestType, level: DifficultyLevel): Promise<SavedSession> => {
     try {
-      const timestamp = Date.now();
-      const id = 'sess_' + timestamp + '_' + Math.random().toString(36).substring(2, 9);
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 400));
       
-      const sessionData: SavedSession = {
+      const timestamp = Date.now();
+      
+      const docData: SavedSession = {
         ...session,
-        id,
+        id: 'sess-' + timestamp,
         timestamp,
         testType,
-        level
+        level,
       };
 
-      // Get existing sessions
-      const existingData = localStorage.getItem(STORAGE_KEY);
-      const sessions: SavedSession[] = existingData ? JSON.parse(existingData) : [];
-      
-      // Add new session
-      sessions.push(sessionData);
-      
-      // Save back
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const sessions: SavedSession[] = stored ? JSON.parse(stored) : [];
+      sessions.unshift(docData);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
       
-      console.log("Session saved to LocalStorage with ID: ", id);
-      
-      return sessionData;
+      console.log("Session saved locally (mock DB)");
+      return docData;
     } catch (error) {
-      console.error("Error saving to LocalStorage: ", error);
+      console.error("Error saving to local storage: ", error);
       throw error;
     }
   },
 
-  // Retrieve all sessions (mimics SELECT * FROM reading_sessions ORDER BY timestamp DESC)
+  // Retrieve all sessions
   getAllSessions: async (): Promise<SavedSession[]> => {
     try {
-      const existingData = localStorage.getItem(STORAGE_KEY);
-      const sessions: SavedSession[] = existingData ? JSON.parse(existingData) : [];
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 400));
       
-      // Sort by timestamp desc
-      return sessions.sort((a, b) => b.timestamp - a.timestamp);
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.error("Error reading from LocalStorage: ", error);
+      console.error("Error getting from local storage: ", error);
       return [];
     }
   }
