@@ -6,18 +6,19 @@ interface ReadingViewProps {
   session: ReadingSession;
   onBack: () => void;
   onNext: () => void;
+  onComplete?: () => void;
 }
 
-const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext }) => {
+const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onComplete }) => {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
   
+  // Font size state (default 18px for better mobile readability)
+  const [fontSize, setFontSize] = useState(16);
+
   // Split pane state
-  // Initial Ratio Logic:
-  // Desktop/Tablet (>= 768px): 0.5 (50% Passage / 50% Questions) - Standard Split
-  // Mobile (< 768px): 0.75 (75% Passage / 25% Questions) - Bottom Sheet style to maximize reading area
   const [splitRatio, setSplitRatio] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth >= 768 ? 0.5 : 0.75;
@@ -63,11 +64,20 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext }) =>
     });
     setScore(newScore);
     setShowResults(true);
+    
+    // Notify parent that session is complete (to clear cache if needed)
+    if (onComplete) {
+      onComplete();
+    }
+
     const questionsPanel = document.getElementById('questions-panel');
     if (questionsPanel) {
       questionsPanel.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  const handleZoomIn = () => setFontSize(prev => Math.min(prev + 1, 32));
+  const handleZoomOut = () => setFontSize(prev => Math.max(prev - 1, 14));
 
   // Drag Handlers
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -131,44 +141,71 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext }) =>
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-slate-50 relative">
       {/* Toolbar */}
-      <div className="flex-none bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
-        <div className="flex items-center gap-4">
+      <div className="flex-none bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm z-10 gap-3">
+        <div className="flex items-center gap-3 overflow-hidden">
           <button 
             onClick={onBack}
-            className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
+            className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors flex-shrink-0"
             title="Back to menu"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
-          <div>
-            <h2 className="font-bold text-slate-800 text-sm md:text-base line-clamp-1">{session.title}</h2>
+          <div className="min-w-0">
+            <h2 className="font-bold text-slate-800 text-sm md:text-base truncate">{session.title}</h2>
             <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-medium">
+              <span className="hidden md:inline bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-medium">
                 {isQuickRead ? 'Short' : session.questions.length > 2 ? 'Long' : 'Standard'}
               </span>
-              <span>•</span>
+              <span className="hidden md:inline">•</span>
               <span>{session.avgTime} read</span>
             </div>
           </div>
         </div>
-        
-        {/* Progress Bar (Visible only when taking quiz) */}
-        {!showResults && !isQuickRead && (
-           <div className="hidden md:flex flex-col items-end w-48">
-             <div className="flex justify-between w-full text-xs mb-1 text-slate-500">
-               <span>Progress</span>
-               <span>{Object.keys(selectedAnswers).length}/{session.questions.length}</span>
+
+        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+          {/* Zoom Controls */}
+          <div className="flex items-center bg-slate-100 rounded-lg p-1">
+            <button 
+              onClick={handleZoomOut}
+              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-white rounded transition-colors disabled:opacity-30"
+              disabled={fontSize <= 14}
+              title="Decrease font size"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+              </svg>
+            </button>
+            <span className="text-xs font-medium w-8 text-center tabular-nums text-slate-600">{fontSize}px</span>
+            <button 
+              onClick={handleZoomIn}
+              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-white rounded transition-colors disabled:opacity-30"
+              disabled={fontSize >= 32}
+              title="Increase font size"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Progress Bar (Visible only when taking quiz on desktop) */}
+          {!showResults && !isQuickRead && (
+             <div className="hidden lg:flex flex-col items-end w-32">
+               <div className="flex justify-between w-full text-[10px] mb-1 text-slate-500">
+                 <span>Progress</span>
+                 <span>{Object.keys(selectedAnswers).length}/{session.questions.length}</span>
+               </div>
+               <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                 <div 
+                    className="h-full bg-indigo-500 transition-all duration-300 ease-out"
+                    style={{ width: `${progress}%` }}
+                 />
+               </div>
              </div>
-             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-               <div 
-                  className="h-full bg-indigo-500 transition-all duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-               />
-             </div>
-           </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Main Content: Split View */}
@@ -186,13 +223,15 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext }) =>
             flexShrink: 0
           }}
         >
-          <div className="max-w-2xl mx-auto p-6 md:p-10 lg:p-14">
-             <h1 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 mb-8 leading-tight">
+          <div className="max-w-2xl mx-auto p-6 md:p-10 lg:p-14 transition-all duration-200">
+             <h1 className="font-serif font-bold text-slate-900 mb-8 leading-tight" 
+                 style={{ fontSize: `${fontSize * 1.6}px` }}>
                {session.title}
              </h1>
-             <div className="prose prose-slate prose-lg text-slate-700 font-serif leading-loose">
+             <div className="prose prose-slate max-w-none text-slate-700 font-serif leading-loose">
                 {formattedPassage.map((para, i) => (
-                  <p key={i} className="mb-6 indent-8 text-justify">
+                  <p key={i} className="mb-6 indent-8 text-justify" 
+                     style={{ fontSize: `${fontSize}px`, lineHeight: '1.8' }}>
                     {para}
                   </p>
                 ))}
@@ -223,13 +262,14 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext }) =>
             id="questions-panel" 
             className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8 min-h-0 min-w-0"
         >
-          <div className="max-w-xl mx-auto space-y-8 pb-20 md:pb-0">
+          <div className="max-w-xl mx-auto space-y-8 pb-20 md:pb-0"
+               style={{ fontSize: `${Math.max(16, fontSize * 0.9)}px` }}> {/* Questions slightly smaller but scaled */}
             
             {/* Quick Read Mode: Show Summary Directly */}
             {isQuickRead && (
               <div className="space-y-6">
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                  <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2" style={{ fontSize: '1.2em' }}>
                     <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -240,7 +280,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext }) =>
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 text-base">
                   <Button onClick={onNext} variant="primary" className="flex-1">
                     Read Another
                   </Button>
@@ -287,7 +327,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext }) =>
 
                       <div className="space-y-3">
                         {q.options.map((option, oIdx) => {
-                          let btnClass = "w-full text-left p-3 rounded-lg border text-sm transition-all duration-200 relative ";
+                          let btnClass = "w-full text-left p-3 rounded-lg border transition-all duration-200 relative ";
                           
                           if (showResults) {
                             if (oIdx === q.correctAnswerIndex) {

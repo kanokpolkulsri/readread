@@ -11,14 +11,42 @@ function App() {
   const [session, setSession] = useState<ReadingSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTestType, setActiveTestType] = useState<TestType | null>(null);
+
+  // Helper to get storage key
+  const getStorageKey = (type: TestType) => `readerline_session_${type}`;
   
   const handleTestSelect = async (testType: TestType) => {
     setLoading(true);
     setError(null);
     setActiveTestType(testType);
+
+    // 1. Check Cache (Skip for Quick Read)
+    if (testType !== TestType.QUICK_READ) {
+      const cached = localStorage.getItem(getStorageKey(testType));
+      if (cached) {
+        try {
+          const sessionData = JSON.parse(cached);
+          setSession(sessionData);
+          setCurrentView('reading');
+          setLoading(false);
+          return;
+        } catch (e) {
+          console.error("Failed to parse cached session", e);
+          localStorage.removeItem(getStorageKey(testType));
+        }
+      }
+    }
+
+    // 2. Fetch if not cached
     try {
       const data = await generateReadingSession(testType);
       setSession(data);
+      
+      // 3. Save to Cache (Skip for Quick Read)
+      if (testType !== TestType.QUICK_READ) {
+        localStorage.setItem(getStorageKey(testType), JSON.stringify(data));
+      }
+
       setCurrentView('reading');
     } catch (err) {
       setError("Failed to generate content. Please try again.");
@@ -32,12 +60,17 @@ function App() {
     if (!activeTestType) return;
     setLoading(true);
     setError(null);
-    // Keep currentView as 'reading' but show loader
+    
     try {
-      // Small delay to allow UI to show loading state if instant
       setSession(null); 
       const data = await generateReadingSession(activeTestType);
       setSession(data);
+
+      // Overwrite Cache (Skip for Quick Read)
+      if (activeTestType !== TestType.QUICK_READ) {
+        localStorage.setItem(getStorageKey(activeTestType), JSON.stringify(data));
+      }
+
     } catch (err) {
       setError("Failed to generate next session. Please try again.");
       setCurrentView('home'); // Fallback to home on error
@@ -51,6 +84,13 @@ function App() {
     setCurrentView('home');
     setSession(null);
     setActiveTestType(null);
+  };
+
+  const handleSessionComplete = () => {
+    // Clear cache when user finishes questions (not for Quick Read)
+    if (activeTestType && activeTestType !== TestType.QUICK_READ) {
+      localStorage.removeItem(getStorageKey(activeTestType));
+    }
   };
 
   return (
@@ -94,6 +134,7 @@ function App() {
           session={session} 
           onBack={handleBackToHome}
           onNext={handleNextSession}
+          onComplete={handleSessionComplete}
         />
       )}
 
