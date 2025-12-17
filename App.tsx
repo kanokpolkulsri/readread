@@ -13,10 +13,10 @@ function App() {
   const [activeTestType, setActiveTestType] = useState<TestType | null>(null);
   
   // Global Font Size State
-  // Mobile (<768px) defaults to 16px, Desktop/Tablet defaults to 12px
+  // Mobile (<768px) defaults to 14px, Desktop/Tablet defaults to 12px
   const [fontSize, setFontSize] = useState(() => {
     if (typeof window !== 'undefined') {
-      return window.innerWidth < 768 ? 16 : 12;
+      return window.innerWidth < 768 ? 14 : 12;
     }
     return 12;
   });

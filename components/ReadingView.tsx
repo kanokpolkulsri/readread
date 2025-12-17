@@ -196,7 +196,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
              <h1 className="text-3xl font-serif font-bold text-slate-900 mb-8 leading-tight">
                {session.title}
              </h1>
-             <div className="prose prose-lg prose-slate max-w-none text-slate-700 font-serif leading-loose">
+             <div className="prose prose-slate max-w-none text-slate-700 font-serif leading-loose">
                 {formattedPassage.map((para, i) => (
                   <p key={i} className="mb-6 indent-8 text-justify">
                     {para}
