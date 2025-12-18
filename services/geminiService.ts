@@ -5,7 +5,7 @@ import { TestType, ReadingSession, Difficulty } from "../types";
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateReadingSession = async (testType: TestType, difficulty: Difficulty): Promise<ReadingSession> => {
-  const model = "gemini-2.5-flash";
+  const model = "gemini-3-flash-preview";
 
   let lengthInstruction = "";
   let avgTime = "";
@@ -52,45 +52,30 @@ export const generateReadingSession = async (testType: TestType, difficulty: Dif
   }
 
   // Define Schemas
-  let schema;
-  
-  if (isQuickRead) {
-    schema = {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING, description: "A catchy title." },
-        passage: { type: Type.STRING, description: "The text. Use double newlines (\\n\\n) for paragraphs." },
-        avgTime: { type: Type.STRING },
-        summary: { type: Type.STRING, description: "A concise 2-3 sentence summary of the main points." }
-      },
-      required: ["title", "passage", "avgTime", "summary"]
-    };
-  } else {
-    schema = {
-      type: Type.OBJECT,
-      properties: {
-        title: { type: Type.STRING, description: "A catchy title." },
-        passage: { type: Type.STRING, description: "The text. Use double newlines (\\n\\n) for paragraphs." },
-        avgTime: { type: Type.STRING },
-        summary: { type: Type.STRING, description: "A concise 2-3 sentence summary of the main points." },
-        questions: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.INTEGER },
-              text: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              correctAnswerIndex: { type: Type.INTEGER },
-              explanation: { type: Type.STRING }
-            },
-            required: ["id", "text", "options", "correctAnswerIndex", "explanation"]
-          }
+  let schema = {
+    type: Type.OBJECT,
+    properties: {
+      title: { type: Type.STRING },
+      passage: { type: Type.STRING },
+      avgTime: { type: Type.STRING },
+      summary: { type: Type.STRING },
+      questions: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.INTEGER },
+            text: { type: Type.STRING },
+            options: { type: Type.ARRAY, items: { type: Type.STRING } },
+            correctAnswerIndex: { type: Type.INTEGER },
+            explanation: { type: Type.STRING }
+          },
+          required: ["id", "text", "options", "correctAnswerIndex", "explanation"]
         }
-      },
-      required: ["title", "passage", "avgTime", "questions", "summary"]
-    };
-  }
+      }
+    },
+    required: ["title", "passage", "avgTime", "questions", "summary"]
+  };
 
   const prompt = `
   Create a reading practice session.
