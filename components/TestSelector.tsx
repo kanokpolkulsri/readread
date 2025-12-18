@@ -60,7 +60,7 @@ const TestSelector: React.FC<TestSelectorProps> = ({ onSelect, difficulty, onDif
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            Standard <span className="text-xs opacity-75 hidden sm:inline">(IELTS 9.0)</span>
+            Standard
           </button>
           <button
             onClick={() => onDifficultyChange(Difficulty.CHALLENGE)}
@@ -70,7 +70,7 @@ const TestSelector: React.FC<TestSelectorProps> = ({ onSelect, difficulty, onDif
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            Challenge <span className="text-xs opacity-75 hidden sm:inline">(GRE / NYT)</span>
+            Challenge <span className="text-xs opacity-75 hidden sm:inline">(GRE)</span>
           </button>
         </div>
       </div>
