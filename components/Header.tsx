@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User } from '../types';
 
@@ -43,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({
 
           <div className="flex items-center gap-4">
             {/* Zoom Controls */}
-            <div className="hidden sm:flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
               <button 
                 onClick={onZoomOut}
                 className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-white rounded transition-colors disabled:opacity-30"

@@ -1,6 +1,6 @@
 
 // Use standard named imports for Firebase v9+ modular SDK to ensure compatibility and correct type resolution
-import { initializeApp } from "firebase/app";
+import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   setPersistence, 
@@ -14,8 +14,8 @@ import {
   updateProfile,
   sendPasswordResetEmail,
   confirmPasswordReset
-} from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+} from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCwt2WEsDfwtWxwTBL3vYnWdZqdA476R20",
