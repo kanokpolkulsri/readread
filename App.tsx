@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import TestSelector from './components/TestSelector';
@@ -30,7 +31,7 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setFirebaseUid(firebaseUser.uid);
-        let displayName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'user';
+        let finalUsername = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'user';
         
         try {
           const userRef = doc(db, 'users', firebaseUser.uid);
@@ -38,9 +39,16 @@ function App() {
           
           if (userSnap.exists()) {
             const userData = userSnap.data();
-            if (userData.username) displayName = userData.username;
+            if (userData.username) finalUsername = userData.username;
+            
+            // Backfill username_lowercase if missing for any reason
+            if (!userData.username_lowercase && userData.username) {
+              await setDoc(userRef, { 
+                username_lowercase: userData.username.toLowerCase() 
+              }, { merge: true });
+            }
           } else {
-            const lowercaseDisplayName = displayName.toLowerCase();
+            const lowercaseDisplayName = finalUsername.toLowerCase();
             await setDoc(userRef, {
               email: firebaseUser.email?.toLowerCase(),
               username: lowercaseDisplayName,
@@ -53,7 +61,11 @@ function App() {
           console.error("Error fetching/syncing username:", err); 
         }
         
-        setUser({ email: firebaseUser.email || '', name: displayName.toLowerCase(), photoUrl: firebaseUser.photoURL || undefined });
+        setUser({ 
+          email: firebaseUser.email || '', 
+          username: finalUsername.toLowerCase(), 
+          photoUrl: firebaseUser.photoURL || undefined 
+        });
       } else {
         setUser(null);
         setFirebaseUid(null);

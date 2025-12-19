@@ -1,46 +1,34 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import Button from './Button';
 import { 
   auth, 
   db,
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  updateProfile,
-  sendPasswordResetEmail,
-  confirmPasswordReset
+  updateProfile
 } from '../services/firebase';
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, limit } from "firebase/firestore";
 
 interface LoginViewProps {
   onClose: () => void;
 }
 
+// Internal constant for Firebase Auth compliance (since we are doing passwordless-style login)
+const INTERNAL_AUTH_KEY = "reading_practice_app_secure_key";
+
 const LoginView: React.FC<LoginViewProps> = ({ onClose }) => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [resetCode, setResetCode] = useState<string | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('oobCode');
-    const mode = params.get('mode');
-    if (code && mode === 'resetPassword') {
-      setResetCode(code);
-    }
-  }, []);
 
   const saveUserToFirestore = async (userId: string, userEmail: string, name: string) => {
     try {
       await setDoc(doc(db, 'users', userId), {
         email: userEmail.toLowerCase(),
-        username: name.toLowerCase(),
+        username: name,
         username_lowercase: name.toLowerCase(),
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp()
@@ -50,61 +38,57 @@ const LoginView: React.FC<LoginViewProps> = ({ onClose }) => {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setMessage('');
-    
-    const resetEmail = email.trim();
-    if (!resetEmail || !resetEmail.includes('@')) {
-      setError('Please enter a valid email address.');
-      setLoading(false);
-      return;
-    }
-
+  const checkUsernameExists = async (name: string): Promise<boolean> => {
+    const cleanName = name.trim().toLowerCase();
     try {
-      await sendPasswordResetEmail(auth, resetEmail);
-      setMessage('Password reset link sent! Check your inbox.');
-    } catch (err: any) {
-      setError(err.message || 'Failed to send reset email.');
-    } finally {
-      setLoading(false);
+      const q = query(
+        collection(db, 'users'), 
+        where('username_lowercase', '==', cleanName),
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      return !snap.empty;
+    } catch (err) {
+      console.error("Error checking username:", err);
+      return false;
     }
   };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isForgotPassword) return handleForgotPassword(e);
-    if (resetCode) return handleCompleteReset(e);
-
     setLoading(true);
     setError('');
-    setMessage('');
     
-    const loginEmail = email.trim();
-
-    if (isRegistering) {
-      if (password !== confirmPassword) {
-        setError('Passwords do not match.');
-        setLoading(false);
-        return;
-      }
-      if (!username.trim()) {
-        setError('Please enter a username.');
-        setLoading(false);
-        return;
-      }
-    }
-
     try {
+      const cleanEmail = email.trim().toLowerCase();
+
       if (isRegistering) {
-        const userCredential = await createUserWithEmailAndPassword(auth, loginEmail, password);
-        const lowercaseUsername = username.toLowerCase();
-        await updateProfile(userCredential.user, { displayName: lowercaseUsername });
-        await saveUserToFirestore(userCredential.user.uid, loginEmail, lowercaseUsername);
+        const cleanUsername = username.trim();
+
+        if (!cleanEmail || !cleanUsername) {
+          setError('Please provide both email and username.');
+          setLoading(false);
+          return;
+        }
+
+        const usernameTaken = await checkUsernameExists(cleanUsername);
+        if (usernameTaken) {
+          setError('Username already taken. Please choose another.');
+          setLoading(false);
+          return;
+        }
+
+        const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, INTERNAL_AUTH_KEY);
+        await updateProfile(userCredential.user, { displayName: cleanUsername });
+        await saveUserToFirestore(userCredential.user.uid, cleanEmail, cleanUsername);
       } else {
-        const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
+        if (!cleanEmail) {
+          setError('Please enter your email address.');
+          setLoading(false);
+          return;
+        }
+
+        const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, INTERNAL_AUTH_KEY);
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           lastLogin: serverTimestamp()
         }, { merge: true });
@@ -112,35 +96,15 @@ const LoginView: React.FC<LoginViewProps> = ({ onClose }) => {
       onClose();
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('Incorrect email or password.');
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
+        setError('Account not found. Please check your email or sign up.');
       } else if (err.code === 'auth/email-already-in-use') {
-        setError('This email is already in use.');
+        setError('This email is already registered. Please sign in instead.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Please enter a valid email address.');
       } else {
-        setError(err.message || 'Authentication failed.');
+        setError('Authentication failed. Please check your connection.');
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCompleteReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (!resetCode) return;
-    setLoading(true);
-    setError('');
-    try {
-      await confirmPasswordReset(auth, resetCode, password);
-      setMessage('Password updated! You can now sign in.');
-      setResetCode(null);
-      setIsForgotPassword(false);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } catch (err: any) {
-      setError('Reset link is invalid or expired.');
     } finally {
       setLoading(false);
     }
@@ -163,67 +127,53 @@ const LoginView: React.FC<LoginViewProps> = ({ onClose }) => {
             </button>
           </div>
 
-          <h2 className="text-3xl font-serif font-bold text-slate-900 mb-2">{resetCode ? 'New Password' : (isForgotPassword ? 'Reset Password' : (isRegistering ? 'Create Account' : 'Welcome Back'))}</h2>
-          <p className="text-slate-500 mb-8">{isForgotPassword ? 'Enter your email to get a reset link.' : 'Level up your English reading with AI.'}</p>
+          <h2 className="text-3xl font-serif font-bold text-slate-900 mb-2">
+            {isRegistering ? 'Create Account' : 'Hey, what\'s good?'}
+          </h2>
+          <p className="text-slate-500 mb-8">
+            {isRegistering ? 'Choose a username and enter your email.' : 'Sign in using your registered email.'}
+          </p>
 
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-6">
             {isRegistering && (
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Username (Lowercase Only)</label>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Username</label>
                 <input 
                   type="text" 
-                  placeholder="e.g. palm" 
-                  className={`${inputClasses} lowercase`} 
-                  value={username} 
-                  onChange={(e) => setUsername(e.target.value.toLowerCase())} 
-                  required 
-                />
-              </div>
-            )}
-
-            {!resetCode && (
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Email Address</label>
-                <input 
-                  type="email" 
-                  placeholder="email@example.com" 
+                  placeholder="e.g. readingmaster" 
                   className={inputClasses} 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
+                  value={username} 
+                  onChange={(e) => setUsername(e.target.value)} 
                   required 
                 />
               </div>
             )}
-
-            {(!isForgotPassword || resetCode) && (
-              <div className={isRegistering ? "grid grid-cols-2 gap-3" : "space-y-4"}>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Password</label>
-                  <input type="password" placeholder="••••••••" className={inputClasses} value={password} onChange={(e) => setPassword(e.target.value)} required />
-                </div>
-                {isRegistering && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Confirm</label>
-                    <input type="password" placeholder="••••••••" className={inputClasses} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-                  </div>
-                )}
-              </div>
-            )}
+            
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Email Address</label>
+              <input 
+                type="email" 
+                placeholder="email@example.com" 
+                className={inputClasses} 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+              />
+            </div>
 
             {error && <div className="p-3 rounded-xl bg-red-50 text-red-600 text-xs font-bold animate-shake">{error}</div>}
-            {message && <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600 text-xs font-bold">{message}</div>}
 
             <Button type="submit" className="w-full py-4 rounded-2xl shadow-xl shadow-indigo-100 font-bold" isLoading={loading}>
-              {resetCode ? 'Update Password' : (isForgotPassword ? 'Send Reset Link' : (isRegistering ? 'Create Account' : 'Sign in'))}
+              {isRegistering ? 'Start Practicing' : 'Sign In'}
             </Button>
           </form>
 
-          <div className="text-center pt-4">
-            {!isRegistering && !isForgotPassword && !resetCode && (
-              <button onClick={() => setIsForgotPassword(true)} className="text-xs text-slate-400 hover:text-indigo-600 mb-4 block w-full">Forgot password?</button>
-            )}
-            <button onClick={() => { setIsRegistering(!isRegistering); setIsForgotPassword(false); setResetCode(null); setError(''); setMessage(''); }} className="text-sm font-bold text-indigo-600 hover:underline">
-              {isForgotPassword || resetCode ? 'Back to Sign in' : (isRegistering ? 'Already have an account? Sign in' : "Don't have an account? Create one")}
+          <div className="text-center pt-6">
+            <button 
+              onClick={() => { setIsRegistering(!isRegistering); setError(''); }} 
+              className="text-sm font-bold text-indigo-600 hover:underline"
+            >
+              {isRegistering ? 'Already have an account? Sign in' : "New user? Create an account"}
             </button>
           </div>
         </div>

@@ -1,7 +1,20 @@
 
-// Import from firebase/app and firebase/auth using namespaced imports to ensure compatibility with environments where named exports are not correctly resolved
-import * as FirebaseApp from "firebase/app";
-import * as FirebaseAuth from "firebase/auth";
+// Use standard named imports for Firebase v9+ modular SDK to ensure compatibility and correct type resolution
+import { initializeApp } from "firebase/app";
+import { 
+  getAuth, 
+  setPersistence, 
+  browserLocalPersistence, 
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+  sendPasswordResetEmail,
+  confirmPasswordReset
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -13,24 +26,26 @@ const firebaseConfig = {
   appId: "1:664232512396:web:5b79842a6729a1f8fe24a9"
 };
 
-// Initialize Firebase using the modular API through namespaced imports
-const app = FirebaseApp.initializeApp(firebaseConfig);
-export const auth = FirebaseAuth.getAuth(app);
+// Initialize Firebase using the standard modular API
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 
 // Ensure local persistence is enabled so users stay logged in across sessions
-FirebaseAuth.setPersistence(auth, FirebaseAuth.browserLocalPersistence).catch((error) => {
+setPersistence(auth, browserLocalPersistence).catch((error) => {
   console.error("Error setting persistence:", error);
 });
 
 export const db = getFirestore(app);
-export const googleProvider = new FirebaseAuth.GoogleAuthProvider();
+export const googleProvider = new GoogleAuthProvider();
 
-// Re-export Auth functions for use in components to ensure standard API access
-export const signInWithEmailAndPassword = FirebaseAuth.signInWithEmailAndPassword;
-export const createUserWithEmailAndPassword = FirebaseAuth.createUserWithEmailAndPassword;
-export const signInWithPopup = FirebaseAuth.signInWithPopup;
-export const signOut = FirebaseAuth.signOut;
-export const onAuthStateChanged = FirebaseAuth.onAuthStateChanged;
-export const updateProfile = FirebaseAuth.updateProfile;
-export const sendPasswordResetEmail = FirebaseAuth.sendPasswordResetEmail;
-export const confirmPasswordReset = FirebaseAuth.confirmPasswordReset;
+// Re-export Auth functions for use in components using the modular API access
+export {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+  sendPasswordResetEmail,
+  confirmPasswordReset
+};

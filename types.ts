@@ -1,3 +1,4 @@
+
 export enum TestType {
   BUSINESS = 'Business',
   ENTERTAINMENT = 'Fiction & Drama',
@@ -11,7 +12,7 @@ export enum Difficulty {
 
 export interface User {
   email: string;
-  name: string;
+  username: string;
   photoUrl?: string;
 }
 
