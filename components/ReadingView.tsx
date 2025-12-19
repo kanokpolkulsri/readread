@@ -238,7 +238,19 @@ const ReadingView: React.FC<ReadingViewProps> = ({
           <div className="max-w-xl mx-auto space-y-8 pb-12">
             {isQuickRead ? (
               <div className="space-y-6">
-                {/* Actions BEFORE Summary */}
+                {/* Summary AFTER Actions */}
+                <div className="bg-indigo-50 p-8 rounded-2xl border border-indigo-100 shadow-sm">
+                  <h3 className="text-xl font-bold text-indigo-900 mb-4 flex items-center">
+                    <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Summary
+                  </h3>
+                  <p className="text-indigo-800 leading-relaxed text-justify text-base">
+                    {session.summary}
+                  </p>
+                </div>
+                {/* Actions AFTER Summary */}
                 {!showResults ? (
                   <div className="pt-2">
                     <Button 
@@ -271,19 +283,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({
                     <h3 className="text-xl font-bold text-slate-900">Great Job!</h3>
                   </div>
                 )}
-
-                {/* Summary AFTER Actions */}
-                <div className="bg-indigo-50 p-8 rounded-2xl border border-indigo-100 shadow-sm">
-                  <h3 className="text-xl font-bold text-indigo-900 mb-4 flex items-center">
-                    <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Summary
-                  </h3>
-                  <p className="text-indigo-800 leading-relaxed text-justify text-base">
-                    {session.summary}
-                  </p>
-                </div>
               </div>
             ) : (
               <>
