@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { db } from '../services/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { UserSessionRecord, Difficulty } from '../types';
+import { UserSessionRecord, Difficulty, TestType } from '../types';
 
 interface HistoryViewProps {
   userId: string;
@@ -168,9 +167,11 @@ const HistoryView: React.FC<HistoryViewProps> = ({ userId, onBack, onSelectSessi
                 <div className="text-left sm:text-right">
                   {session.status === 'completed' ? (
                     <>
-                      <div className="text-lg font-bold text-slate-900 leading-none mb-1">
-                        {session.score} <span className="text-slate-300">/ {session.totalQuestions || 0}</span>
-                      </div>
+                      {session.testType !== TestType.QUICK_READ && (
+                        <div className="text-lg font-bold text-slate-900 leading-none mb-1">
+                          {session.score} <span className="text-slate-300">/ {session.totalQuestions || 0}</span>
+                        </div>
+                      )}
                       <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 flex items-center justify-start sm:justify-end gap-1">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -180,7 +181,6 @@ const HistoryView: React.FC<HistoryViewProps> = ({ userId, onBack, onSelectSessi
                     </>
                   ) : (
                     <>
-                      <div className="text-lg font-bold text-slate-300 leading-none mb-1">— / —</div>
                       <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center justify-start sm:justify-end gap-1">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

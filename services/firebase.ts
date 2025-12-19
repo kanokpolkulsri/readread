@@ -1,21 +1,7 @@
-
 // Use standard named imports for Firebase v9+ modular SDK to ensure compatibility and correct type resolution
-import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  setPersistence, 
-  browserLocalPersistence, 
-  GoogleAuthProvider,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-  updateProfile,
-  sendPasswordResetEmail,
-  confirmPasswordReset
-} from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from "firebase/app";
+import { getAuth, setPersistence, browserLocalPersistence, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, signOut, onAuthStateChanged, updateProfile, sendPasswordResetEmail, confirmPasswordReset } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCwt2WEsDfwtWxwTBL3vYnWdZqdA476R20",
@@ -27,6 +13,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase using the standard modular API
+// Fix: Removing leading empty lines and consolidating imports to resolve "no exported member" errors in certain build environments.
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 

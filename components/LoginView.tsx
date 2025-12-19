@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Button from './Button';
 import { 
@@ -110,7 +109,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onClose }) => {
     }
   };
 
-  const inputClasses = "w-full px-5 py-3 rounded-2xl bg-white border border-slate-200 focus:border-indigo-600 outline-none transition-all text-black placeholder:text-slate-400 font-medium shadow-sm disabled:bg-slate-50";
+  const inputClasses = "w-full px-5 py-3 rounded-2xl bg-white border border-slate-200 focus:border-indigo-600 outline-none transition-all text-black placeholder:text-slate-400 font-medium shadow-sm disabled:bg-slate-50 text-[16px]";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">

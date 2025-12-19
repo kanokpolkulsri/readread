@@ -49,6 +49,7 @@ export const generateReadingSession = async (testType: TestType, difficulty: Dif
     difficultyInstruction = "Proficiency Level: IELTS Band 8-9. Natural, fluent, and precise language.";
   }
 
+  // Define the schema with propertyOrdering as per guidelines
   const responseSchema = {
     type: Type.OBJECT,
     properties: {
@@ -67,11 +68,13 @@ export const generateReadingSession = async (testType: TestType, difficulty: Dif
             correctAnswerIndex: { type: Type.INTEGER },
             explanation: { type: Type.STRING }
           },
-          required: ["id", "text", "options", "correctAnswerIndex", "explanation"]
+          required: ["id", "text", "options", "correctAnswerIndex", "explanation"],
+          propertyOrdering: ["id", "text", "options", "correctAnswerIndex", "explanation"]
         }
       }
     },
-    required: ["title", "passage", "avgTime", "questions", "summary"]
+    required: ["title", "passage", "avgTime", "questions", "summary"],
+    propertyOrdering: ["title", "passage", "avgTime", "summary", "questions"]
   };
 
   const prompt = `Create a reading practice session. ${specificInstruction} ${lengthInstruction} ${difficultyInstruction} FORMATTING: Separate paragraphs with double newlines. ${questionCountInstruction} Generate a 'summary' field.`;
@@ -81,7 +84,8 @@ export const generateReadingSession = async (testType: TestType, difficulty: Dif
       model,
       contents: prompt,
       config: {
-        // Set a thinkingBudget for complex text generation tasks to allow for deeper reasoning
+        // Set both maxOutputTokens and thinkingBudget at the same time to ensure the model has budget for the final response.
+        maxOutputTokens: 20000,
         thinkingConfig: { thinkingBudget: 16000 },
         responseMimeType: "application/json",
         responseSchema: responseSchema,
