@@ -1,21 +1,33 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ReadingSession } from '../types';
 import Button from './Button';
+import { db } from '../services/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 interface ReadingViewProps {
   session: ReadingSession;
+  userSessionId: string | null;
   onBack: () => void;
   onNext: () => void;
   onComplete?: () => void;
+  isReviewMode?: boolean;
+  initialAnswers?: Record<number, number>;
 }
 
-const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onComplete }) => {
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
-  const [showResults, setShowResults] = useState(false);
+const ReadingView: React.FC<ReadingViewProps> = ({ 
+  session, 
+  userSessionId, 
+  onBack, 
+  onNext, 
+  onComplete,
+  isReviewMode = false,
+  initialAnswers = {}
+}) => {
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>(initialAnswers);
+  const [showResults, setShowResults] = useState(isReviewMode);
   const [score, setScore] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
 
-  // Split pane state: Initialized to 75% for mobile and 50% for desktop/tablet
   const [splitRatio, setSplitRatio] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.innerWidth >= 768 ? 0.5 : 0.75;
@@ -30,7 +42,16 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    if (isReviewMode) {
+      let calcScore = 0;
+      session.questions.forEach(q => {
+        if (initialAnswers[q.id] === q.correctAnswerIndex) {
+          calcScore++;
+        }
+      });
+      setScore(calcScore);
+    }
+  }, [isReviewMode, session.questions, initialAnswers]);
 
   const formattedPassage = useMemo(() => {
     if (!session.passage) return [];
@@ -42,14 +63,14 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
   }, [session.passage]);
 
   const handleOptionSelect = (questionId: number, optionIndex: number) => {
-    if (showResults) return;
+    if (showResults || isReviewMode) return;
     setSelectedAnswers(prev => ({
       ...prev,
       [questionId]: optionIndex
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     let newScore = 0;
     session.questions.forEach(q => {
       if (selectedAnswers[q.id] === q.correctAnswerIndex) {
@@ -59,6 +80,20 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
     setScore(newScore);
     setShowResults(true);
     
+    if (userSessionId) {
+      try {
+        const sessionRef = doc(db, 'userSessions', userSessionId);
+        await updateDoc(sessionRef, {
+          status: 'completed',
+          score: newScore,
+          totalQuestions: session.questions.length,
+          userAnswers: selectedAnswers
+        });
+      } catch (err) {
+        console.error("Error updating user session in Firestore:", err);
+      }
+    }
+
     if (onComplete) {
       onComplete();
     }
@@ -117,15 +152,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
     document.removeEventListener('touchend', handleDragEnd);
   }, [handleDragMove]);
 
-  useEffect(() => {
-    return () => {
-      document.removeEventListener('mousemove', handleDragMove);
-      document.removeEventListener('touchmove', handleDragMove);
-      document.removeEventListener('mouseup', handleDragEnd);
-      document.removeEventListener('touchend', handleDragEnd);
-    };
-  }, [handleDragMove, handleDragEnd]);
-
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden bg-slate-50">
       {/* Header Bar */}
@@ -137,22 +163,23 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          <span className="hidden sm:inline font-medium">Exit</span>
+          <span className="hidden sm:inline font-medium">{isReviewMode ? 'Finish Review' : 'Exit'}</span>
         </button>
         <div className="text-center px-4 overflow-hidden">
-          <h2 className="font-bold text-slate-800 text-sm truncate max-w-xs sm:max-w-md">{session.title}</h2>
+          <h2 className="font-bold text-slate-800 text-sm truncate max-w-xs sm:max-w-md">
+            {isReviewMode && <span className="text-indigo-600 mr-2 uppercase text-[10px] tracking-widest border border-indigo-200 px-1.5 py-0.5 rounded">Review Mode</span>}
+            {session.title}
+          </h2>
         </div>
         <div className="text-slate-400 text-xs font-medium tabular-nums whitespace-nowrap">
           {session.avgTime} read
         </div>
       </div>
 
-      {/* Main Split Interface */}
       <div 
         ref={containerRef}
         className="flex-grow flex flex-col md:flex-row overflow-hidden relative"
       >
-        {/* Left Side: The Passage */}
         <div 
           className="overflow-y-auto bg-white"
           style={{ 
@@ -165,7 +192,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
             <h1 className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-8 leading-tight">
               {session.title}
             </h1>
-            {/* Unified text-base and removed prose for exact 1:1 scaling ratio */}
             <div className="text-slate-700 font-serif leading-loose text-base">
               {formattedPassage.map((para, i) => (
                 <p key={i} className="mb-6 indent-8 text-justify">
@@ -179,7 +205,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
           </div>
         </div>
 
-        {/* Draggable Handle */}
         <div 
           className="flex-none bg-slate-200 border-slate-300 flex items-center justify-center z-20 hover:bg-indigo-300 transition-colors touch-none
                      md:w-2 md:h-full md:cursor-col-resize md:border-x
@@ -190,11 +215,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
           <div className="bg-slate-400 rounded-full md:w-0.5 md:h-6 w-6 h-0.5" />
         </div>
 
-        {/* Right Side: Questions / Summary Panel */}
-        <div 
-          id="questions-panel" 
-          className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8"
-        >
+        <div id="questions-panel" className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8">
           <div className="max-w-xl mx-auto space-y-8 pb-12">
             {isQuickRead ? (
               <div className="space-y-6">
@@ -210,7 +231,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
                   </p>
                 </div>
                 
-                {/* Buttons under summary as requested */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Button onClick={onNext} className="w-full py-3">Read Another</Button>
                   <Button onClick={onBack} variant="outline" className="w-full py-3 bg-white">Back to Menu</Button>
@@ -218,7 +238,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
               </div>
             ) : (
               <>
-                {/* Questions Section */}
                 <div className="space-y-6">
                   {session.questions.map((q, qIdx) => (
                     <div key={q.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
@@ -255,7 +274,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
                             <button
                               key={oIdx}
                               onClick={() => handleOptionSelect(q.id, oIdx)}
-                              disabled={showResults}
+                              disabled={showResults || isReviewMode}
                               className={btnClass}
                             >
                               <span className="inline-block w-6 font-bold opacity-30">{String.fromCharCode(65 + oIdx)}</span>
@@ -275,7 +294,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
                   ))}
                 </div>
 
-                {/* Submit / Results box - placed under questions */}
                 {!showResults ? (
                   <div className="pt-4">
                     <Button 
@@ -290,20 +308,22 @@ const ReadingView: React.FC<ReadingViewProps> = ({ session, onBack, onNext, onCo
                   </div>
                 ) : (
                   <div id="session-results" className="bg-white p-8 rounded-2xl shadow-md border-2 border-indigo-500 animate-fade-in text-center mt-8">
-                    <span className="text-sm font-bold uppercase tracking-widest text-indigo-600">Session Completed</span>
+                    <span className="text-sm font-bold uppercase tracking-widest text-indigo-600">{isReviewMode ? 'Reviewing Results' : 'Session Completed'}</span>
                     <div className="text-5xl font-bold text-slate-900 mt-2 mb-6">
                       {score} <span className="text-2xl text-slate-400">/ {session.questions.length}</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Button onClick={onNext} className="w-full">Read Another</Button>
-                      <Button onClick={onBack} variant="outline" className="w-full bg-white">Menu</Button>
+                      {!isReviewMode && <Button onClick={onNext} className="w-full">Read Another</Button>}
+                      <Button onClick={onBack} variant="outline" className="w-full bg-white">{isReviewMode ? 'Back to Selection' : 'Menu'}</Button>
                     </div>
-                    <button 
-                      onClick={() => setShowResults(false)} 
-                      className="mt-4 text-sm text-slate-400 hover:text-indigo-600 font-medium transition-colors"
-                    >
-                      Review My Answers
-                    </button>
+                    {!isReviewMode && (
+                      <button 
+                        onClick={() => setShowResults(false)} 
+                        className="mt-4 text-sm text-slate-400 hover:text-indigo-600 font-medium transition-colors"
+                      >
+                        Review My Answers
+                      </button>
+                    )}
                   </div>
                 )}
 

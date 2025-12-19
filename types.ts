@@ -9,6 +9,12 @@ export enum Difficulty {
   CHALLENGE = 'Challenge'
 }
 
+export interface User {
+  email: string;
+  name: string;
+  photoUrl?: string;
+}
+
 export interface Question {
   id: number;
   text: string;
@@ -23,4 +29,34 @@ export interface ReadingSession {
   avgTime: string; 
   questions: Question[];
   summary?: string; 
+}
+
+// Global shared passage structure
+export interface SharedPassage extends ReadingSession {
+  id: string;
+  testType: TestType;
+  difficulty: Difficulty;
+  createdAt: any;
+}
+
+// Record of a specific user's interaction with a shared passage
+export interface UserSessionRecord {
+  id: string;
+  userId: string;
+  passageId: string;
+  status: 'in-progress' | 'completed';
+  score?: number;
+  totalQuestions?: number;
+  userAnswers?: Record<number, number>;
+  createdAt: any;
+  // Denormalized data for easier history viewing
+  passageTitle: string;
+  testType: TestType;
+  difficulty: Difficulty;
+}
+
+// Helper type for the landing page statistics
+export interface TopicProgress {
+  total: number;
+  completed: number;
 }
