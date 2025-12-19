@@ -86,18 +86,11 @@ const TestSelector: React.FC<TestSelectorProps> = ({ onSelect, difficulty, onDif
             <button
               key={book.type}
               onClick={() => onSelect(book.type)}
-              className="group relative p-5 md:p-8 rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-left flex flex-col h-full overflow-hidden"
+              className="group relative p-6 md:p-8 rounded-2xl bg-white border border-slate-200 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-left flex flex-col h-full overflow-hidden"
             >
-              <div className="flex items-start justify-between mb-4 md:mb-6">
-                <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg md:rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <div className="flex items-start mb-4 md:mb-6">
+                <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                   {book.icon}
-                </div>
-                <div className="flex flex-col items-end gap-1">
-                  {!isEmpty && (
-                    <div className="text-[10px] font-bold text-indigo-500 tracking-tighter uppercase">
-                      {prog.completed}/{prog.total} Tests
-                    </div>
-                  )}
                 </div>
               </div>
               
@@ -105,28 +98,26 @@ const TestSelector: React.FC<TestSelectorProps> = ({ onSelect, difficulty, onDif
                 <h3 className="text-lg md:text-xl font-bold mb-1 text-slate-900">
                   {book.title}
                 </h3>
-                <div className="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-2 md:mb-3">
+                <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-3">
                   {book.subtitle}
                 </div>
-                <p className="text-sm md:text-base text-slate-500 leading-relaxed mb-4">
+                <p className="text-sm md:text-base text-slate-500 leading-relaxed">
                   {book.description}
                 </p>
-
-                {!isEmpty && (
-                  <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden mb-2">
-                    <div 
-                      className="h-full bg-indigo-500 transition-all duration-500" 
-                      style={{ width: `${(prog.completed / prog.total) * 100}%` }}
-                    />
-                  </div>
-                )}
               </div>
               
-              <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 flex items-center text-indigo-600 font-medium text-sm md:text-base group-hover:text-indigo-700">
-                <span>Start Reading</span>
-                <svg className="w-4 h-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+              <div className="mt-6 pt-4 flex items-center justify-between">
+                <div className="flex items-center text-indigo-600 font-bold text-sm md:text-base group-hover:text-indigo-700">
+                  <span>Start Reading</span>
+                  <svg className="w-4 h-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
+                {!isEmpty && (
+                  <div className="text-[10px] font-bold text-slate-400 tracking-tight uppercase bg-slate-50 px-2 py-1 rounded">
+                    {prog.completed}/{prog.total} Tests
+                  </div>
+                )}
               </div>
             </button>
           );

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ReadingSession } from '../types';
 import Button from './Button';
@@ -42,7 +43,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (isReviewMode) {
+    if (isReviewMode && !isQuickRead) {
       let calcScore = 0;
       session.questions.forEach(q => {
         if (initialAnswers[q.id] === q.correctAnswerIndex) {
@@ -51,7 +52,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({
       });
       setScore(calcScore);
     }
-  }, [isReviewMode, session.questions, initialAnswers]);
+  }, [isReviewMode, session.questions, initialAnswers, isQuickRead]);
 
   const formattedPassage = useMemo(() => {
     if (!session.passage) return [];
@@ -68,6 +69,24 @@ const ReadingView: React.FC<ReadingViewProps> = ({
       ...prev,
       [questionId]: optionIndex
     }));
+  };
+
+  const handleQuickReadComplete = async () => {
+    setShowResults(true);
+    if (userSessionId) {
+      try {
+        const sessionRef = doc(db, 'userSessions', userSessionId);
+        await updateDoc(sessionRef, {
+          status: 'completed',
+          score: 0,
+          totalQuestions: 0,
+          userAnswers: {}
+        });
+      } catch (err) {
+        console.error("Error updating user session in Firestore:", err);
+      }
+    }
+    if (onComplete) onComplete();
   };
 
   const handleSubmit = async () => {
@@ -219,6 +238,41 @@ const ReadingView: React.FC<ReadingViewProps> = ({
           <div className="max-w-xl mx-auto space-y-8 pb-12">
             {isQuickRead ? (
               <div className="space-y-6">
+                {/* Actions BEFORE Summary */}
+                {!showResults ? (
+                  <div className="pt-2">
+                    <Button 
+                      onClick={handleQuickReadComplete} 
+                      className="w-full py-4 text-lg shadow-lg font-bold"
+                      variant="primary"
+                    >
+                      Complete
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 animate-fade-in">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm font-bold uppercase tracking-widest text-indigo-600">Session Completed</span>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={onNext}
+                          className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                          Read Another
+                        </button>
+                        <button 
+                          onClick={onBack}
+                          className="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition-colors"
+                        >
+                          Menu
+                        </button>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900">Great Job!</h3>
+                  </div>
+                )}
+
+                {/* Summary AFTER Actions */}
                 <div className="bg-indigo-50 p-8 rounded-2xl border border-indigo-100 shadow-sm">
                   <h3 className="text-xl font-bold text-indigo-900 mb-4 flex items-center">
                     <svg className="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -229,11 +283,6 @@ const ReadingView: React.FC<ReadingViewProps> = ({
                   <p className="text-indigo-800 leading-relaxed text-justify text-base">
                     {session.summary}
                   </p>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button onClick={onNext} className="w-full py-3">Read Another</Button>
-                  <Button onClick={onBack} variant="outline" className="w-full py-3 bg-white">Back to Menu</Button>
                 </div>
               </div>
             ) : (
