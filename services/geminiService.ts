@@ -7,7 +7,7 @@ import { TestType, ReadingSession, Difficulty } from "../types";
  * Adheres to the @google/genai guidelines for model naming and response handling.
  */
 export const generateReadingSession = async (testType: TestType, difficulty: Difficulty): Promise<ReadingSession> => {
-  // Always create a new instance right before making the call as per guidelines
+  // Always create a new instance right before making the call as per guidelines to ensure fresh API key
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const model = "gemini-3-pro-preview";
 
@@ -81,6 +81,8 @@ export const generateReadingSession = async (testType: TestType, difficulty: Dif
       model,
       contents: prompt,
       config: {
+        // Set a thinkingBudget for complex text generation tasks to allow for deeper reasoning
+        thinkingConfig: { thinkingBudget: 16000 },
         responseMimeType: "application/json",
         responseSchema: responseSchema,
         systemInstruction: "You are an expert English tutor generating reading materials."

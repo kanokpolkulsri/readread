@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { db } from '../services/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -93,19 +94,19 @@ const HistoryView: React.FC<HistoryViewProps> = ({ userId, onBack, onSelectSessi
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Passages Read</div>
-          <div className="text-2xl font-bold text-slate-900">{stats.total}</div>
+          <div className="text-2xl font-bold text-black">{stats.total}</div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="text-emerald-500 text-xs font-bold uppercase tracking-wider mb-1">Completed</div>
-          <div className="text-2xl font-bold text-slate-900">{stats.completed}</div>
+          <div className="text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1">Completed</div>
+          <div className="text-2xl font-bold text-black">{stats.completed}</div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="text-amber-500 text-xs font-bold uppercase tracking-wider mb-1">In Progress</div>
-          <div className="text-2xl font-bold text-slate-900">{stats.inProgress}</div>
+          <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">In Progress</div>
+          <div className="text-2xl font-bold text-black">{stats.inProgress}</div>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1">Avg. Accuracy</div>
-          <div className="text-2xl font-bold text-slate-900">{stats.accuracy}%</div>
+          <div className="text-2xl font-bold text-black">{stats.accuracy}%</div>
         </div>
       </div>
 
@@ -142,7 +143,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ userId, onBack, onSelectSessi
                 <div className="flex items-center gap-3 mb-1">
                   <h3 className="font-serif font-bold text-lg text-slate-900 truncate max-w-[280px] md:max-w-md">{session.passageTitle}</h3>
                   <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md whitespace-nowrap ${
-                    session.difficulty === Difficulty.CHALLENGE ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-500'
+                    session.difficulty === Difficulty.CHALLENGE ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
                   }`}>
                     {session.difficulty}
                   </span>
@@ -170,7 +171,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ userId, onBack, onSelectSessi
                       <div className="text-lg font-bold text-slate-900 leading-none mb-1">
                         {session.score} <span className="text-slate-300">/ {session.totalQuestions || 0}</span>
                       </div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 flex items-center justify-start sm:justify-end gap-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 flex items-center justify-start sm:justify-end gap-1">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
@@ -180,7 +181,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ userId, onBack, onSelectSessi
                   ) : (
                     <>
                       <div className="text-lg font-bold text-slate-300 leading-none mb-1">— / —</div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500 flex items-center justify-start sm:justify-end gap-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center justify-start sm:justify-end gap-1">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -195,7 +196,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ userId, onBack, onSelectSessi
                   className={`px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 ${
                     session.status === 'completed' 
                       ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
+                      : 'bg-black text-white hover:bg-slate-800 shadow-slate-200'
                   }`}
                 >
                   {session.status === 'completed' ? 'Review' : 'Continue'}

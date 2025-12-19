@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { TestType, Difficulty, TopicProgress } from '../types';
 
@@ -92,13 +93,9 @@ const TestSelector: React.FC<TestSelectorProps> = ({ onSelect, difficulty, onDif
                   {book.icon}
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  {isEmpty ? (
-                    <div className="bg-slate-50 text-slate-400 text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border border-slate-200">
-                      Empty Library
-                    </div>
-                  ) : (
-                    <div className="text-[10px] font-bold text-indigo-500 tracking-tighter">
-                      {prog.completed}/{prog.total} COMPLETED
+                  {!isEmpty && (
+                    <div className="text-[10px] font-bold text-indigo-500 tracking-tighter uppercase">
+                      {prog.completed}/{prog.total} Tests
                     </div>
                   )}
                 </div>
@@ -126,7 +123,7 @@ const TestSelector: React.FC<TestSelectorProps> = ({ onSelect, difficulty, onDif
               </div>
               
               <div className="mt-4 md:mt-8 pt-4 md:pt-6 border-t border-slate-100 flex items-center text-indigo-600 font-medium text-sm md:text-base group-hover:text-indigo-700">
-                <span>{isEmpty ? 'Generate First Read' : (prog.completed < prog.total ? 'Continue Library' : 'Add New Passage')}</span>
+                <span>Start Reading</span>
                 <svg className="w-4 h-4 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>

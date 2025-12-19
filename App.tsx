@@ -7,7 +7,7 @@ import HistoryView from './components/HistoryView';
 import { generateReadingSession } from './services/geminiService';
 import { ReadingSession, UserSessionRecord, TestType, Difficulty, User, SharedPassage, TopicProgress } from './types';
 import { auth, db, onAuthStateChanged, signOut } from './services/firebase';
-import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs, setDoc } from 'firebase/firestore';
 
 function App() {
   const [currentView, setCurrentView] = useState<'home' | 'reading' | 'history'>('home');
@@ -30,16 +30,30 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setFirebaseUid(firebaseUser.uid);
-        let displayName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User';
+        let displayName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'user';
+        
         try {
           const userRef = doc(db, 'users', firebaseUser.uid);
           const userSnap = await getDoc(userRef);
+          
           if (userSnap.exists()) {
             const userData = userSnap.data();
             if (userData.username) displayName = userData.username;
+          } else {
+            const lowercaseDisplayName = displayName.toLowerCase();
+            await setDoc(userRef, {
+              email: firebaseUser.email?.toLowerCase(),
+              username: lowercaseDisplayName,
+              username_lowercase: lowercaseDisplayName,
+              createdAt: serverTimestamp(),
+              lastLogin: serverTimestamp()
+            }, { merge: true });
           }
-        } catch (err) { console.error("Error fetching username:", err); }
-        setUser({ email: firebaseUser.email || '', name: displayName, photoUrl: firebaseUser.photoURL || undefined });
+        } catch (err) { 
+          console.error("Error fetching/syncing username:", err); 
+        }
+        
+        setUser({ email: firebaseUser.email || '', name: displayName.toLowerCase(), photoUrl: firebaseUser.photoURL || undefined });
       } else {
         setUser(null);
         setFirebaseUid(null);
@@ -103,7 +117,6 @@ function App() {
 
     setLoading(true);
     try {
-      // Step 1: Query user sessions by ID (low complexity) and filter for 'in-progress' in memory
       const snapUserSessions = await getDocs(query(collection(db, 'userSessions'), where('userId', '==', firebaseUid)));
       const inProgressSession = snapUserSessions.docs.find(d => {
         const data = d.data();
@@ -123,7 +136,6 @@ function App() {
         }
       }
 
-      // Step 2: Look for a global passage not yet touched by the user
       const snapAllGlobal = await getDocs(query(collection(db, 'passages'), where('testType', '==', testType)));
       const filteredGlobal = snapAllGlobal.docs.filter(d => d.data().difficulty === difficulty);
       const touchedPassageIds = snapUserSessions.docs.map(d => d.data().passageId);
@@ -142,7 +154,6 @@ function App() {
         return;
       }
 
-      // Step 3: Generation Fallback
       const newData = await generateReadingSession(testType, difficulty);
       const passageRef = await addDoc(collection(db, 'passages'), { ...newData, testType, difficulty, createdAt: serverTimestamp() });
       const newUserSession = await addDoc(collection(db, 'userSessions'), {
@@ -153,7 +164,7 @@ function App() {
       setCurrentUserSessionId(newUserSession.id);
       setCurrentView('reading');
     } catch (err) {
-      setError("Failed to start session. This may be due to a library update or AI timeout. Please try again.");
+      setError("Session generation failed. Please try again.");
       console.error(err);
     } finally { setLoading(false); }
   };
@@ -181,13 +192,23 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <Header onHomeClick={handleBackToHome} currentView={currentView} fontSize={fontSize} onZoomIn={handleZoomIn} onZoomOut={handleZoomOut} user={user} onLoginClick={() => setShowLogin(true)} onLogout={handleLogout} onHistoryClick={() => setCurrentView('history')} />
+      <Header 
+        onHomeClick={handleBackToHome} 
+        currentView={currentView} 
+        fontSize={fontSize} 
+        onZoomIn={handleZoomIn} 
+        onZoomOut={handleZoomOut} 
+        user={user} 
+        onLoginClick={() => setShowLogin(true)} 
+        onLogout={handleLogout} 
+        onHistoryClick={() => setCurrentView('history')}
+      />
       {showLogin && <LoginView onClose={() => setShowLogin(false)} />}
       {loading && (
          <div className="fixed inset-0 bg-white/90 backdrop-blur-sm z-[60] flex flex-col items-center justify-center">
            <div className="w-16 h-16 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin mb-6"></div>
            <h2 className="text-2xl font-serif font-bold text-slate-800 mb-2">Preparing Session...</h2>
-           <p className="text-slate-500">Checking global library and writing content.</p>
+           <p className="text-slate-500">Retrieving content from our library.</p>
          </div>
       )}
       {currentView === 'home' && (
